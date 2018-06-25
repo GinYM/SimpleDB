@@ -2,10 +2,7 @@ package simpledb;
 
 import java.io.Serializable;
 import java.util.*;
-import java.lang.instrument.Instrumentation;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectOutputStream;
+
 
 /**
  * TupleDesc describes the schema of a tuple.
@@ -39,7 +36,7 @@ public class TupleDesc implements Serializable {
         }
     }
 
-    ArrayList<TDItem> fields;
+    private ArrayList<TDItem> fields;
 
     /**
      * @return
@@ -156,11 +153,17 @@ public class TupleDesc implements Serializable {
      */
     public int fieldNameToIndex(String name) throws NoSuchElementException {
         // some code goes here
-        int idx = 0;
+        int idx = -1;
+        String theName = "";
         for(int i = 0; i<numFields();i++){
-            if(getFieldName(i).equals(name)){
+            theName = getFieldName(i);
+            if(theName != null && theName.equals(name)){
                 idx = i;
+                break;
             }
+        }
+        if(idx == -1){
+            throw new NoSuchElementException();
         }
         return idx;
     }
@@ -171,11 +174,11 @@ public class TupleDesc implements Serializable {
      */
     public int getSize()  {
         // some code goes here
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		ObjectOutputStream out = new ObjectOutputStream(baos);
-		out.writeObject(fields);
-		out.close();
-        return baos.toByteArray().length;
+        int size = 0;
+        for(int i = 0;i<numFields();i++){
+            size += getFieldType(i).getLen();
+        }
+        return size;
     }
 
     /**
@@ -215,6 +218,12 @@ public class TupleDesc implements Serializable {
      */
     public boolean equals(Object o) {
         // some code goes here
+        if(! (o instanceof TupleDesc)){
+            return false;
+        }
+        if(o == null){
+            return false;
+        }
         if(numFields() != ((TupleDesc)o).numFields()){
             return false;
         }

@@ -20,8 +20,16 @@ public class Catalog {
      * Constructor.
      * Creates a new, empty catalog.
      */
+
+    private ArrayList<DbFile> tableFile;
+    private ArrayList<String> tableName;
+    private ArrayList<String> tablePK; //primary key
+
     public Catalog() {
         // some code goes here
+        tableFile = new ArrayList<DbFile>();
+        tableName = new ArrayList<String>();
+        tablePK = new ArrayList<String>();
     }
 
     /**
@@ -35,6 +43,23 @@ public class Catalog {
      */
     public void addTable(DbFile file, String name, String pkeyField) {
         // some code goes here
+        int idx = -1;
+        for(int i = 0;i<tableName.size();i++){
+            if(tableName.get(i).equals(name)){
+                idx = i;
+                break;
+            }
+        }
+        if(idx == -1){
+            tableFile.add(file);
+            tableName.add(name);
+            tablePK.add(pkeyField);
+        }else{
+            tableFile.set(idx, file);
+            tableName.set(idx, name);
+            tablePK.set(idx, pkeyField);
+        }
+        
     }
 
     public void addTable(DbFile file, String name) {
@@ -58,7 +83,19 @@ public class Catalog {
      */
     public int getTableId(String name) throws NoSuchElementException {
         // some code goes here
-        return 0;
+        int idx = 0;
+        boolean isFind = false;
+        for(int i = 0;i<tableName.size();i++){
+            if(tableName.get(i).equals(name)){
+                idx = tableFile.get(i).getId();
+                isFind = true;
+                break;
+            }
+        }
+        if(isFind == false){
+            throw new NoSuchElementException();
+        }
+        return idx;
     }
 
     /**
@@ -69,7 +106,17 @@ public class Catalog {
      */
     public TupleDesc getTupleDesc(int tableid) throws NoSuchElementException {
         // some code goes here
-        return null;
+        TupleDesc ret = null;
+        for(int i = 0;i<tableFile.size();i++){
+            if(tableFile.get(i).getId() == tableid){
+                ret = tableFile.get(i).getTupleDesc();
+                break;
+            }
+        }
+        if(ret == null){
+            throw new NoSuchElementException();
+        }
+        return ret;
     }
 
     /**
@@ -80,27 +127,68 @@ public class Catalog {
      */
     public DbFile getDbFile(int tableid) throws NoSuchElementException {
         // some code goes here
-        return null;
+        DbFile file = null;
+        for(int i = 0;i<tableFile.size();i++){
+            if(tableFile.get(i).getId() == tableid){
+                file = tableFile.get(i);
+                break;
+            }
+        }
+        if(file == null){
+            throw new NoSuchElementException();
+        }
+        return file;
     }
 
     public String getPrimaryKey(int tableid) {
         // some code goes here
-        return null;
+        String pk = "";
+        for(int i = 0;i<tableFile.size();i++){
+            if(tableFile.get(i).getId() == tableid){
+                pk = tablePK.get(i);
+                break;
+            }
+        }
+        return pk;
     }
 
     public Iterator<Integer> tableIdIterator() {
         // some code goes here
-        return null;
+        return new Iterator<Integer>(){
+            private int index = 0;
+            public boolean hasNext(){
+                return index < tableFile.size();
+            }
+            public Integer next(){
+                if(! hasNext()){
+                    throw new IndexOutOfBoundsException();
+                }
+                return tableFile.get(index++).getId();
+            }
+            public void remove(){
+
+            }
+        };
     }
 
     public String getTableName(int id) {
         // some code goes here
-        return null;
+        String name = "";
+        for(int i = 0;i<tableFile.size();i++){
+            if(tableFile.get(i).getId() == id){
+                name = tableName.get(i);
+                break;
+            }
+        }
+        return name;
     }
     
     /** Delete all tables from the catalog */
     public void clear() {
         // some code goes here
+        tableFile.clear();
+        tableName.clear();
+        tablePK.clear();
     }
     
     /**

@@ -48,7 +48,11 @@ public class RecordId implements Serializable {
     @Override
     public boolean equals(Object o) {
         // some code goes here
-        throw new UnsupportedOperationException("implement this");
+        if(!(o instanceof RecordId)){
+            return false;
+        }
+        return true;
+        //throw new UnsupportedOperationException("implement this");
     }
 
     /**
