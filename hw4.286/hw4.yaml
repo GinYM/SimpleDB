@@ -1,0 +1,12 @@
+project_tree: 'hw4/'
+
+modified_files:
+- table/stats/Histogram.java
+- query/QueryPlan.java
+
+
+test_to_run:
+- TestBasicQuery
+- TestOptimizationJoins
+- TestHistogram
+- TestSingleAccess

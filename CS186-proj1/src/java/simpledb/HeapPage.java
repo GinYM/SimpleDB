@@ -5,7 +5,7 @@ import java.io.*;
 
 /**
  * Each instance of HeapPage stores data for one page of HeapFiles and 
- * implements the Page interface that is used by BufferPool.
+ * implements the Page interface that is used by Buffeace that is used by BufferPool.
  *
  * @see HeapFile
  * @see BufferPool

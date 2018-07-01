@@ -1,6 +1,9 @@
 package simpledb;
 
 import java.io.*;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
 
 /**
  * BufferPool manages the reading and writing of pages into memory from
@@ -20,6 +23,11 @@ public class BufferPool {
     constructor instead. */
     public static final int DEFAULT_PAGES = 50;
 
+    private int numPages;
+    private Map<TransactionId, Map<PageId, Lock>> locks;
+    private PageId[] bufferPool;
+
+
     /**
      * Creates a BufferPool that caches up to numPages pages.
      *
@@ -27,6 +35,9 @@ public class BufferPool {
      */
     public BufferPool(int numPages) {
         // some code goes here
+        this.numPages = numPages;
+        locks = new HashMap<TransactionId, Map<PageId, Lock>>();
+        bufferPool = new PageId[numPages];
     }
 
     /**
@@ -47,6 +58,13 @@ public class BufferPool {
     public  Page getPage(TransactionId tid, PageId pid, Permissions perm)
         throws TransactionAbortedException, DbException {
         // some code goes here
+        if(!locks.containsKey(tid)){
+            locks.put(tid, new HashMap<PageId, Lock>());
+            locks.get(tid).put(pid, new ReentrantLock());
+        }
+        locks.get(tid).get(pid).lock();
+        
+
         return null;
     }
 

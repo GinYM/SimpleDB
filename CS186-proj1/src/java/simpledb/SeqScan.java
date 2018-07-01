@@ -4,7 +4,7 @@ import java.util.*;
 
 /**
  * SeqScan is an implementation of a sequential scan access method that reads
- * each tuple of a table in no particular order (e.g., as they are laid out on
+ * each tuple of a table in no particular order (e.g., as they are laid out  a table in no particular order (e.g., as they are laid out on
  * disk).
  */
 public class SeqScan implements DbIterator {
