@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="7e3ed0e1-4b06-435e-9f96-3a24f499912a" name="Default" comment="">
-      <change beforePath="$PROJECT_DIR$/src/main/java/edu/berkeley/cs186/database/query/PNLJOperator.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/edu/berkeley/cs186/database/query/PNLJOperator.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/edu/berkeley/cs186/database/query/BNLJOperator.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/edu/berkeley/cs186/database/query/BNLJOperator.java" afterDir="false" />
     </list>
     <ignored path="$PROJECT_DIR$/target/" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -14,15 +14,6 @@
   </component>
   <component name="FileEditorManager">
     <leaf>
-      <file leaf-file-name="TestTable.java" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/test/java/edu/berkeley/cs186/database/table/TestTable.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="200">
-              <caret line="371" column="14" selection-start-line="371" selection-start-column="14" selection-end-line="371" selection-end-column="14" />
-            </state>
-          </provider>
-        </entry>
-      </file>
       <file leaf-file-name="TestJoinOperator.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/test/java/edu/berkeley/cs186/database/query/TestJoinOperator.java">
           <provider selected="true" editor-type-id="text-editor">
@@ -50,11 +41,20 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="PNLJOperator.java" pinned="false" current-in-tab="true">
+      <file leaf-file-name="PNLJOperator.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/main/java/edu/berkeley/cs186/database/query/PNLJOperator.java">
           <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="419">
+              <caret line="163" column="5" lean-forward="true" selection-start-line="128" selection-start-column="4" selection-end-line="163" selection-end-column="5" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="BNLJOperator.java" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/src/main/java/edu/berkeley/cs186/database/query/BNLJOperator.java">
+          <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="399">
-              <caret line="156" column="32" selection-start-line="156" selection-start-column="32" selection-end-line="156" selection-end-column="32" />
+              <caret line="116" column="19" selection-start-line="116" selection-start-column="19" selection-end-line="116" selection-end-column="19" />
             </state>
           </provider>
         </entry>
@@ -125,6 +125,7 @@
       <list>
         <option value="$PROJECT_DIR$/src/main/java/edu/berkeley/cs186/database/table/Table.java" />
         <option value="$PROJECT_DIR$/src/main/java/edu/berkeley/cs186/database/query/PNLJOperator.java" />
+        <option value="$PROJECT_DIR$/src/main/java/edu/berkeley/cs186/database/query/BNLJOperator.java" />
       </list>
     </option>
   </component>
@@ -443,12 +444,6 @@
     <servers />
   </component>
   <component name="TestHistory">
-    <history-entry file="TestRecord - 2018.07.01 at 23h 44m 20s.xml">
-      <configuration name="TestRecord" configurationId="JUnit" />
-    </history-entry>
-    <history-entry file="TestRecordId - 2018.07.01 at 23h 44m 30s.xml">
-      <configuration name="TestRecordId" configurationId="JUnit" />
-    </history-entry>
     <history-entry file="TestSchema - 2018.07.01 at 23h 44m 37s.xml">
       <configuration name="TestSchema" configurationId="JUnit" />
     </history-entry>
@@ -473,6 +468,12 @@
     <history-entry file="TestJoinOperator_testSimplePNLJOutputOrder - 2018.07.02 at 21h 25m 59s.xml">
       <configuration name="TestJoinOperator.testSimplePNLJOutputOrder" configurationId="JUnit" />
     </history-entry>
+    <history-entry file="TestJoinOperator_testSimplePNLJOutputOrder - 2018.07.02 at 21h 30m 14s.xml">
+      <configuration name="TestJoinOperator.testSimplePNLJOutputOrder" configurationId="JUnit" />
+    </history-entry>
+    <history-entry file="TestJoinOperator - 2018.07.02 at 21h 30m 30s.xml">
+      <configuration name="TestJoinOperator" configurationId="JUnit" />
+    </history-entry>
   </component>
   <component name="ToolWindowManager">
     <frame x="65" y="-4" width="1855" height="1084" extended-state="6" />
@@ -486,12 +487,12 @@
       <window_info anchor="right" id="Capture Analysis" />
       <window_info anchor="bottom" id="Event Log" side_tool="true" />
       <window_info anchor="right" id="Maven Projects" />
-      <window_info active="true" anchor="bottom" id="Run" order="2" visible="true" weight="0.32991803" />
+      <window_info anchor="bottom" id="Run" order="2" visible="true" weight="0.32991803" />
       <window_info anchor="bottom" id="Version Control" />
       <window_info anchor="bottom" id="Terminal" />
       <window_info id="Capture Tool" />
       <window_info id="Designer" />
-      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.24959569" />
+      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.24959569" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
       <window_info id="UI Designer" />
@@ -628,8 +629,15 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/main/java/edu/berkeley/cs186/database/query/PNLJOperator.java">
       <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="419">
+          <caret line="163" column="5" lean-forward="true" selection-start-line="128" selection-start-column="4" selection-end-line="163" selection-end-column="5" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/edu/berkeley/cs186/database/query/BNLJOperator.java">
+      <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="399">
-          <caret line="156" column="32" selection-start-line="156" selection-start-column="32" selection-end-line="156" selection-end-column="32" />
+          <caret line="116" column="19" selection-start-line="116" selection-start-column="19" selection-end-line="116" selection-end-column="19" />
         </state>
       </provider>
     </entry>
