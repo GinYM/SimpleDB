@@ -62,8 +62,8 @@ public class PNLJOperator extends JoinOperator {
     private Record leftRecord = null;
     private Record rightRecord = null;
     private Record nextRecord = null;
-    private BacktrackingIterator<Page> leftPageIterator = null;
-    private BacktrackingIterator<Page> rightPageIterator = null;
+    //private BacktrackingIterator<Page> leftPageIterator = null;
+    //private BacktrackingIterator<Page> rightPageIterator = null;
     //private int count = 0;
 
 
@@ -74,12 +74,12 @@ public class PNLJOperator extends JoinOperator {
       this.rightIterator = PNLJOperator.this.getPageIterator(this.getRightTableName());
       //this.leftIterator.next();
       //this.rightIterator.next();
-      this.leftPageIterator = PNLJOperator.this.getPageIterator(this.getLeftTableName());
-      this.rightPageIterator = PNLJOperator.this.getPageIterator(this.getRightTableName());
-      this.leftPageIterator.next();
-      this.rightPageIterator.next();
-      this.leftRecordIterator = PNLJOperator.this.getBlockIterator(this.getLeftTableName(), this.leftPageIterator);
-      this.rightRecordIterator = PNLJOperator.this.getBlockIterator(this.getRightTableName(), this.rightPageIterator);
+      //this.leftPageIterator = PNLJOperator.this.getPageIterator(this.getLeftTableName());
+      //this.rightPageIterator = PNLJOperator.this.getPageIterator(this.getRightTableName());
+      this.leftIterator.next();
+      this.rightIterator.next();
+      this.leftRecordIterator = PNLJOperator.this.getBlockIterator(this.getLeftTableName(), leftIterator, 1);
+      this.rightRecordIterator = PNLJOperator.this.getBlockIterator(this.getRightTableName(), rightIterator, 1);
 
       this.nextRecord = null;
 
@@ -89,6 +89,7 @@ public class PNLJOperator extends JoinOperator {
       //this.count++;
 
       if (rightRecord != null) {
+        leftRecordIterator.mark();
         rightRecordIterator.mark();
       }
       else return;
@@ -119,29 +120,49 @@ public class PNLJOperator extends JoinOperator {
             //System.out.println(this.count);
           //}
           //System.out.println(this.rightRecord);
-        }
-        else {
-          nextLeftRecord();
-          resetRightRecord();
+        }else{
+          updateRecod();
         }
       } while (!hasNext());
     }
 
-    private void nextLeftRecord() throws DatabaseException {
-      if (!leftRecordIterator.hasNext()) throw new DatabaseException("All Done!");
-      leftRecord = leftRecordIterator.next();
-      //this.count++;
-      //System.out.println(this.count);
+    private void updateRecod() throws DatabaseException{
+      if(leftRecordIterator.hasNext()==false && rightRecordIterator.hasNext() == false && leftIterator.hasNext() == false  && rightIterator.hasNext() == false){
+        throw new DatabaseException("Finished");
+      }
+
+      if(leftRecordIterator.hasNext()){
+        leftRecord = leftRecordIterator.next();
+        rightRecordIterator.reset();
+        assert(rightRecordIterator.hasNext());
+        rightRecord = rightRecordIterator.next();
+      }else if(rightIterator.hasNext()){
+        //reset leftRecord
+        leftRecordIterator.reset();
+        assert(leftRecordIterator.hasNext());
+        leftRecord = leftRecordIterator.next();
+
+        //fetch new page
+        //rightIterator.next();
+        this.rightRecordIterator = PNLJOperator.this.getBlockIterator(this.getRightTableName(), rightIterator, 1);
+        rightRecord = rightRecordIterator.next();
+        rightRecordIterator.mark();
+      }else{
+        //fetch new page left
+        //leftIterator.next();
+        this.leftRecordIterator = PNLJOperator.this.getBlockIterator(this.getLeftTableName(), leftIterator, 1);
+        leftRecord = leftRecordIterator.next();
+        leftRecordIterator.mark();
+
+        //reset to initial page for right
+        rightIterator = PNLJOperator.this.getPageIterator(this.getRightTableName());
+        rightIterator.next();
+        this.rightRecordIterator = PNLJOperator.this.getBlockIterator(this.getRightTableName(), rightIterator, 1);
+        rightRecord = rightRecordIterator.next();
+        rightRecordIterator.mark();
+      }
     }
 
-    private void resetRightRecord(){
-      //System.out.println(this.count);
-      //this.count = 1;
-      this.rightRecordIterator.reset();
-      assert(rightRecordIterator.hasNext());
-      this.rightRecord = rightRecordIterator.next();
-      //rightRecordIterator.mark();
-    }
 
     /**
      * Checks if there are more record(s) to yield
