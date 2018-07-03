@@ -7,6 +7,7 @@ import java.util.Iterator;
 import edu.berkeley.cs186.database.databox.DataBox;
 import edu.berkeley.cs186.database.query.QueryPlan.PredicateOperator;
 import edu.berkeley.cs186.database.DatabaseException;
+import edu.berkeley.cs186.database.table.RecordIterator;
 import edu.berkeley.cs186.database.table.Table;
 import edu.berkeley.cs186.database.table.Record;
 import edu.berkeley.cs186.database.databox.TypeId;
@@ -128,14 +129,42 @@ public class Histogram {
     // TODO: HW4 implement
 
     //1. first calculate the min and the max values
+    RecordIterator riter = table.iterator();
+    this.minValue = Float.MAX_VALUE;
+    this.maxValue = Float.MIN_VALUE;
+    float quant;
+    while(riter.hasNext()){
+      quant = quantization(riter.next(), attribute);
+      this.minValue = quant < this.minValue?quant:this.minValue;
+      this.maxValue = quant > this.maxValue?quant:this.maxValue;
+    }
 
     //2. calculate the width of each bin
+    this.width = (this.maxValue-this.minValue)/this.numBuckets;
 
     //3. create each bucket object
+    for(int i = 0;i<numBuckets;i++){
+      if(i != numBuckets-1 )
+        buckets[i] = new Bucket<>(this.minValue+i*this.width, this.minValue+(i+1)*this.width);
+      else
+        buckets[i] = new Bucket<>(this.minValue+i*this.width, this.maxValue);
+    }
 
     //4. populate the data using the increment(value) method
+    riter = table.iterator();
+    int idx;
+    while(riter.hasNext()){
+      quant = quantization(riter.next(), attribute);
+      if(Math.abs(this.width) < 0.00001){
+        idx = numBuckets-1;
+      }else{
+        idx = bucketIndex(quant);
+      }
 
-    throw new NotImplementedException();
+      buckets[idx].increment(quant);
+    }
+
+    //throw new NotImplementedException();
 
   }
 
@@ -309,9 +338,21 @@ public class Histogram {
 
     // TODO: HW4 implement;
 
-    throw new NotImplementedException();
+    //throw new NotImplementedException();
 
-    // return result;
+    int idx = bucketIndex(qvalue);
+    //System.out.println(idx);
+
+    for(int i = 0;i<numBuckets;i++){
+      if(i!=idx){
+        result[i] = 0;
+      }else{
+          result[idx] = 1/(float)buckets[idx].getDistinctCount();
+          //System.out.println(result[idx]);
+      }
+    }
+
+    return result;
   }
 
 
@@ -325,10 +366,19 @@ public class Histogram {
 
     // TODO: HW4 implement;
 
-    throw new NotImplementedException();
+    //throw new NotImplementedException();
+    int idx = bucketIndex(qvalue);
+
+    for(int i = 0;i<numBuckets;i++){
+      if(i!=idx){
+        result[i] = 1;
+      }else{
+          result[idx] = 1-1/(float)buckets[idx].getDistinctCount();
+      }
+    }
 
 
-    // return result;
+    return result;
   }
 
 
@@ -342,10 +392,20 @@ public class Histogram {
 
     // TODO: HW4 implement;
 
-    throw new NotImplementedException();
+    //throw new NotImplementedException();
+    int idx = bucketIndex(qvalue);
 
+    for(int i = 0;i<numBuckets;i++){
+      if(i<idx){
+        result[i] = 0;
+      }else if(i > idx){
+        result[i] = 1;
+      }else{
+          result[idx] = (buckets[idx].getEnd()-qvalue)/width;
+      }
+    }
 
-    // return result;
+    return result;
   }
 
 
@@ -359,9 +419,20 @@ public class Histogram {
 
     // TODO: HW4 implement;
 
-    throw new NotImplementedException();
+    //throw new NotImplementedException();
+    int idx = bucketIndex(qvalue);
 
-    // return result;
+    for(int i = 0;i<numBuckets;i++){
+      if(i<idx){
+        result[i] = 1;
+      }else if(i > idx){
+        result[i] = 0;
+      }else{
+          result[idx] = (qvalue - buckets[idx].getStart())/width;
+      }
+    }
+
+    return result;
   }
 
 
@@ -423,7 +494,7 @@ public class Histogram {
       int newDistinctCount = (int) Math.round(reduction[i]*this.buckets[i].getDistinctCount());
 
       newBuckets[i].setCount(newCount);
-      newBuckets[i].setDistinctCount(newCount);
+      newBuckets[i].setDistinctCount(newDistinctCount);
     }
 
     return new Histogram(newBuckets);
@@ -441,7 +512,7 @@ public class Histogram {
       int newDistinctCount = (int) Math.round(reduction*this.buckets[i].getDistinctCount());
 
       newBuckets[i].setCount(newCount);
-      newBuckets[i].setDistinctCount(newCount);
+      newBuckets[i].setDistinctCount(newDistinctCount);
     }
 
     return new Histogram(newBuckets);

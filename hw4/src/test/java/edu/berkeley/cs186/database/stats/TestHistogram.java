@@ -178,6 +178,7 @@ public class TestHistogram {
 
     //Should return [0.1,0,0,0,0,0,0,0,0,0,0]
     float [] result = h.filter(PredicateOperator.EQUALS, new IntDataBox(5));
+    //System.out.println(result[0]);
     assert(Math.abs(result[0]-0.1) < 0.00001);
     for (int i=1; i<10; i++)
       assert(Math.abs(result[i]-0.0) < 0.00001);
@@ -278,6 +279,7 @@ public class TestHistogram {
 
     //Should return [0.9,0,0,0,0,0,0,0,0,0,0] 
     float [] result = h.filter(PredicateOperator.LESS_THAN, new IntDataBox(9));
+    //System.out.println(result[0]);
     assert(Math.abs(result[0]-0.9) < 0.00001);
     for (int i=1; i<10; i++)
       assert(Math.abs(result[i]-0.0) < 0.00001);
