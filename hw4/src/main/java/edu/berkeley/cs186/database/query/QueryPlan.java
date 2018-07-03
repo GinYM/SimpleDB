@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.sun.org.apache.xalan.internal.xsltc.runtime.Operators;
 import edu.berkeley.cs186.database.Database;
 import edu.berkeley.cs186.database.DatabaseException;
 import edu.berkeley.cs186.database.databox.DataBox;
@@ -216,18 +217,33 @@ public class QueryPlan {
     // Pass 1: Iterate through all single tables. For each single table, find
     // the lowest cost QueryOperator to access that table. Construct a mapping
     // of each table name to its lowest cost operator.
-
+    Map<Set, QueryOperator> single = new HashMap<>();
+    Map<Set, QueryOperator> result = new HashMap<>();
+    for(String tableName : this.joinTableNames){
+      Set tmp1 = new HashSet();
+      tmp1.add(tableName);
+      Set tmp2 = new HashSet();
+      tmp2.add(tableName);
+      single.put(tmp1, minCostSingleAccess(tableName));
+      result.put(tmp2, minCostSingleAccess(tableName));
+    }
 
     // Pass i: On each pass, use the results from the previous pass to find the
     // lowest cost joins with each single table. Repeat until all tables have
     // been joined.
+    for(int i = 0;i<joinTableNames.size()-2;i++){
+      result = minCostJoins(result, single);
+    }
 
 
     // Get the lowest cost operator from the last pass, add GROUP BY and SELECT
     // operators, and return an iterator on the final operator
+    this.finalOperator = minCostOperator(result);
+    this.addGroupBy();
+    this.addSelects();
 
 
-    return this.execute(); //TODO: HW4 Replace this!!! Allows you to test intermediate functionality
+    return this.finalOperator.iterator(); //TODO: HW4 Replace this!!! Allows you to test intermediate functionality
 
     //return ....
   }
@@ -444,6 +460,33 @@ public class QueryPlan {
      * joined tables. Add to result map this value mapping to the result from
      * minCostJoinType if it doesn't exist or it exists and cost is lower.
      */
+    QueryOperator leftOp,rightOp;
+    for(Set tables : prevMap.keySet()){
+      for(int idx = 0; idx < this.joinTableNames.size();idx++){
+        String[] leftSide = getJoinLeftColumnNameByIndex(idx);
+        String[] rightSide = getJoinRightColumnNameByIndex(idx);
+        //case1
+        if(tables.contains(leftSide[0]) && !tables.contains(rightSide[0])){
+          leftOp = prevMap.get(tables);
+          rightOp = pass1Map.get(rightSide[0]);
+          tables.add(rightSide[0]);
+        }else if(tables.contains(rightSide[0]) && !tables.contains(leftSide[0])){
+          leftOp = pass1Map.get(leftSide[0]);
+          rightOp = prevMap.get(tables);
+          tables.add(leftSide[0]);
+        }else{
+          continue;
+        }
+        QueryOperator ret = minCostJoinType(leftOp, rightOp, leftSide[1], rightSide[1]);
+        if(!map.keySet().contains(tables)){
+          map.put(tables, ret);
+        }else{
+          if(ret.estimateIOCost() <  map.get(tables).estimateIOCost()){
+            map.put(tables, ret);
+          }
+        }
+      }
+    }
 
     return map;
   }
