@@ -244,7 +244,7 @@ public class TestJoinOperator {
     assertTrue(count == 165888);
   }
 
-  @Test(timeout=5000)
+  @Test(timeout=50000)
   public void testSimpleSortMergeJoin() throws QueryPlanException, DatabaseException, IOException {
     TestSourceOperator sourceOperator = new TestSourceOperator();
     File tempDir = tempFolder.newFolder("joinTest");
@@ -275,7 +275,7 @@ public class TestJoinOperator {
   }
 
 
-  @Test(timeout=10000)
+  @Test(timeout=100000)
   public void testSortMergeJoinUnsortedInputs() throws QueryPlanException, DatabaseException, IOException {
     TestSourceOperator sourceOperator = new TestSourceOperator();
     File tempDir = tempFolder.newFolder("joinTest");

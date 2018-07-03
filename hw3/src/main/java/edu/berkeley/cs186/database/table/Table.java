@@ -549,7 +549,10 @@ public class Table implements Iterable<Record>, Closeable {
     public RIDBlockIterator(BacktrackingIterator<Page> block) {
       this.block = block;
       //nextPage = this.block.next();
-      blockIter = new RIDPageIterator(this.block.next());
+      if(this.block.hasNext()){
+        blockIter = new RIDPageIterator(this.block.next());
+      }
+
       //throw new UnsupportedOperationException("hw3: TODO"); //if you want to add anything to this constructor, feel free to
 
     }
@@ -589,6 +592,9 @@ public class Table implements Iterable<Record>, Closeable {
 
     public boolean hasNext() {
       //throw new UnsupportedOperationException("hw3: TODO");
+      if(blockIter == null){
+        return false;
+      }
       if(blockIter.hasNext() || block.hasNext()){
         return true;
       }

@@ -50,18 +50,79 @@ public class SortMergeOperator extends JoinOperator {
     * You're free to use these member variables, but you're not obligated to.
     */
 
-    // private String leftTableName;
-    // private String rightTableName;
-    // private RecordIterator leftIterator;
-    // private RecordIterator rightIterator;
-    // private Record leftRecord;
-    // private Record nextRecord;
-    // private Record rightRecord;
-    // private boolean marked;
+    private String leftTableName;
+    private String rightTableName;
+    private RecordIterator leftIterator;
+    private RecordIterator rightIterator;
+    private Record leftRecord;
+    private Record nextRecord;
+    private Record rightRecord;
+    private boolean marked;
+    private LeftRecordComparator leftCmp;
+    private RightRecordComparator rightCmp;
+    private LR_RecordComparator lrCmp;
 
     public SortMergeIterator() throws QueryPlanException, DatabaseException {
       super();
-      throw new UnsupportedOperationException("hw3: TODO");
+      //throw new UnsupportedOperationException("hw3: TODO");
+      this.leftTableName = getLeftTableName();
+      this.rightTableName = getRightTableName();
+
+      leftCmp = new LeftRecordComparator();
+      rightCmp = new RightRecordComparator();
+      lrCmp = new LR_RecordComparator();
+      SortOperator sopLeft = new SortOperator(SortMergeOperator.this.getTransaction(),this.leftTableName, this.leftCmp);
+      SortOperator sopRight = new SortOperator(SortMergeOperator.this.getTransaction(), this.rightTableName, this.rightCmp);
+      this.leftTableName = sopLeft.sort();
+      this.rightTableName = sopRight.sort();
+
+      this.leftIterator = SortMergeOperator.this.getRecordIterator(leftTableName);
+      this.rightIterator = SortMergeOperator.this.getRecordIterator(rightTableName);
+
+      this.leftRecord = leftIterator.hasNext() ? leftIterator.next() : null;
+      this.rightRecord = rightIterator.hasNext() ? rightIterator.next() : null;
+
+      // We mark the first record so we can reset to it when we advance the left record.
+      if (rightRecord != null) {
+        rightIterator.mark();
+      }
+      else return;
+
+      try {
+        fetchNextRecord();
+      } catch (DatabaseException e) {
+        this.nextRecord = null;
+      }
+    }
+
+    private void fetchNextRecord() throws DatabaseException {
+      if (this.leftRecord == null) throw new DatabaseException("No new record to fetch");
+      this.nextRecord = null;
+      // find equal
+      while(leftRecord!=null && rightRecord != null && lrCmp.compare(leftRecord, rightRecord) != 0){
+        if(lrCmp.compare(leftRecord, rightRecord) < 0){
+          leftRecord = leftIterator.hasNext()?leftIterator.next():null;
+        }else{
+          rightRecord = rightIterator.hasNext()?rightIterator.next():null;
+          rightIterator.mark();
+        }
+      }
+      if(leftRecord == null ){
+        throw new DatabaseException("Done");
+      }
+      List<DataBox> leftValues = new ArrayList<>(this.leftRecord.getValues());
+      List<DataBox> rightValues = new ArrayList<>(rightRecord.getValues());
+      leftValues.addAll(rightValues);
+      this.nextRecord = new Record(leftValues);
+      rightRecord = rightIterator.hasNext()?rightIterator.next():null;
+      if(rightRecord == null || lrCmp.compare(leftRecord, rightRecord) != 0 ){
+        // reset to last equal value
+        rightIterator.reset();
+        rightRecord = rightIterator.next();
+        // advance left record
+        leftRecord = leftIterator.hasNext()?leftIterator.next():null;
+
+      }
     }
 
     /**
@@ -70,7 +131,7 @@ public class SortMergeOperator extends JoinOperator {
      * @return true if this iterator has another record to yield, otherwise false
      */
     public boolean hasNext() {
-      throw new UnsupportedOperationException("hw3: TODO");
+      return this.nextRecord != null;
     }
 
     /**
@@ -80,7 +141,17 @@ public class SortMergeOperator extends JoinOperator {
      * @throws NoSuchElementException if there are no more Records to yield
      */
     public Record next() {
-      throw new UnsupportedOperationException("hw3: TODO");
+      if (!this.hasNext()) {
+        throw new NoSuchElementException();
+      }
+
+      Record nextRecord = this.nextRecord;
+      try {
+        this.fetchNextRecord();
+      } catch (DatabaseException e) {
+        this.nextRecord = null;
+      }
+      return nextRecord;
     }
 
     public void remove() {

@@ -19,7 +19,7 @@ public class SortOperator  {
   private Comparator<Record> comparator;
   private Schema operatorSchema;
   private int numBuffers;
-  public RecordPairComparator recordPairCmp = new RecordPairComparator();
+  private RecordPairComparator recordPairCmp = new RecordPairComparator();
 
   public SortOperator(Database.Transaction transaction, String tableName, Comparator<Record> comparator) throws DatabaseException, QueryPlanException {
     this.transaction = transaction;

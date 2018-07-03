@@ -169,7 +169,7 @@ public class TestSortOperator {
 
 
 
-  @Test(timeout=5000)
+  @Test(timeout=50000)
   public void testSortNoChange() throws QueryPlanException, DatabaseException, IOException {
     File tempDir = tempFolder.newFolder("sortTest");
     Database d = new Database(tempDir.getAbsolutePath(), 3);
@@ -193,7 +193,7 @@ public class TestSortOperator {
 
   }
 
-  @Test(timeout=5000)
+  @Test(timeout=50000)
   public void testSortBackwards() throws QueryPlanException, DatabaseException, IOException {
     File tempDir = tempFolder.newFolder("sortTest");
     Database d = new Database(tempDir.getAbsolutePath(), 3);
@@ -218,7 +218,7 @@ public class TestSortOperator {
   }
 
 
-  @Test(timeout=5000)
+  @Test(timeout=50000)
   public void testSortRandomOrder() throws QueryPlanException, DatabaseException, IOException {
     File tempDir = tempFolder.newFolder("sortTest");
     Database d = new Database(tempDir.getAbsolutePath(), 3);
