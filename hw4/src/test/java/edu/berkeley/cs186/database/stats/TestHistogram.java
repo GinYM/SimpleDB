@@ -102,13 +102,12 @@ public class TestHistogram {
     Histogram h = new Histogram(10);
     h.buildHistogram(table, 1); //build on the integer col
 
-    assertEquals(101, h.getCount());
+    assertEquals(101, h.getCount()); //count updated properly
     
-    assertEquals(101, h.getNumDistinct());
+    assertEquals(101, h.getNumDistinct()); //distinct count updated properly
 
     for (int i=0; i<9; i++)
       assertEquals(10, h.get(i).getCount());
-
 
     assertEquals(11, h.get(9).getCount());
   }

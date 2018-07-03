@@ -547,4 +547,19 @@ public class QueryPlan {
     }
   }
 
+  /**
+   * Given the map of table names and the optimal single access joins for each table, 
+   * finds any remaining interesting orders for the tables.
+   *
+   * @return a Map<String, List<String>> of all the interesting orders with the key being the table
+   * name and the value being the list of the interesting orders columns
+   * @throws QueryPlanException
+   */
+
+  public Map<String, List<String>> findInterestingOrders(Map<String, QueryOperator> pass1Map) throws DatabaseException, QueryPlanException {
+
+    // TODO: HW4 (CompSci-286a ONLY)
+
+    throw new NotImplementedException();
+  }
 }

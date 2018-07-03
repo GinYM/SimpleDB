@@ -28,7 +28,7 @@ $ git merge staff/master master
 ```
 The `git merge` will give you a warning and a merge prompt if you have made any conflicting changes to master (not really possible with hw1!).
 
-As with hw1, hw2, and hw3, make sure youcreate a new branch for your work:
+As with hw1, hw2, and hw3, make sure you create a new branch for your work:
 ```
 git checkout -b hw4
 ```
@@ -209,11 +209,16 @@ After implementing all the methods up to this point, you should be passing all o
 Returning our attention to `QueryPlan#executeOptimal()`, the result is put into a map structure, which maps each table name to its lowest cost operator. Each table is represented as a singleton set, which will be the input for the next stage of the algorithm.
 
 #### 2.1.2 Join Algorithms (Pass i > 1)
-The next part of the search algorithm involves finding the lowest cost join between each set of tables formed in the previous pass and a separate single table. You will be implementing this functionality in `QueryPlan#minCostJoins`. This method takes a map in a map of left-deep plans on $i$ relations and should produce a map of left-deep plans on $i+1$ relations. All subsets of $i+1$ should have an entry in the map be included unless they involved cartesian products. Use the list of explicit join conditions added through the `QueryPlan#join` method to identify potential joins. The end result of this method should be a mapping from a set of tables to a join query operator that corresponds to the lowest cost join estimated.
+The second part of the search algorithm involves finding the lowest cost join between each set of tables formed in the previous pass and a separate single table. You will be implementing this functionality in `QueryPlan#minCostJoins`. This method takes a map in a map of left-deep plans on $i$ relations and should produce a map of left-deep plans on $i+1$ relations. All subsets of $i+1$ should have an entry in the map be included unless they involved cartesian products. Use the list of explicit join conditions added through the `QueryPlan#join` method to identify potential joins. The end result of this method should be a mapping from a set of tables to a join query operator that corresponds to the lowest cost join estimated.
 
 #### 2.1.3 Optimal Plan Selection
 
-Your final task is to write the outermost driver method of the optimizer, `QueryPlan#executeOptimal`. This method should invoke the various passes of the Selinger dynamic programming algorithm, and in the end return the optimal plan for the full set of tables. You first have to find the optimal single table access plan for all the individual tables that you want to join, and then recursively use `QueryPlan#minCostJoins` to find the best joins between tables until all tables have been joined together. Finally, you have to add the remaining groupBy and project operators that are part of the query but have not been added to the query plan so far.  After implementing all the methods up to this point, you should be passing all of the tests in `TestOptimizationJoins` and `TestBasicQuery`.
+The next part is to write the outermost driver method of the optimizer, `QueryPlan#executeOptimal`. This method should invoke the various passes of the Selinger dynamic programming algorithm, and in the end return the optimal plan for the full set of tables. You first have to find the optimal single table access plan for all the individual tables that you want to join, and then recursively use `QueryPlan#minCostJoins` to find the best joins between tables until all tables have been joined together. Finally, you have to add the remaining groupBy and project operators that are part of the query but have not been added to the query plan so far.  After implementing all the methods up to this point, you should be passing all of the tests in `TestOptimizationJoins` and `TestBasicQuery`.
+
+#### 2.1.4 Interesting Orders
+
+Something we have ignored up to now in our implementation of the System R Query Optimizer is the inclusion of table plans that have interesting orders. We consider a join order interesting if the resulting table is sorted on a key that is used in a later join, `GROUP BY` or `ORDER BY`. Thus, your final task is to implement the function in `QueryPlan#findInterestingOrders`. This method takes in the map of optimal single access plans for each table produced by Pass 1 of the System R algorithm and returns a mapping of table names to a list of tables that result in an interesting order when joined with the aforementioned table.
+
 
 ### Submitting the Assignment
 
