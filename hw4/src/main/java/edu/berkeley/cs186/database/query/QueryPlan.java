@@ -334,13 +334,29 @@ public class QueryPlan {
     //TODO: HW4 Implement
 
     // 1. Find the cost of a sequential scan of the table
+    int minCost = minOp.estimateIOCost();
+    int colIdx = 0;
 
     // 2. For each eligible index column, find the cost of an index scan of the
     // table and retain the lowest cost operator
-
+    List<Integer> idxColumn = getEligibleIndexColumns(table);
+    for(Integer column : idxColumn){
+      QueryOperator op = new IndexScanOperator(this.transaction, table, this.selectColumnNames.get(column),
+              this.selectOperators.get(column), this.selectDataBoxes.get(column));
+      if(op.estimateIOCost() < minCost){
+        minCost = op.estimateIOCost();
+        minOp = op;
+        colIdx = column;
+      }
+    }
 
     // 3. Push down SELECT predicates that apply to this table and that were not
     // used for an index scan
+    if(minOp instanceof IndexScanOperator){
+      minOp = addEligibleSelections(minOp, colIdx);
+    }else{
+      minOp = addEligibleSelections(minOp, -1);
+    }
 
     return minOp;
   }
