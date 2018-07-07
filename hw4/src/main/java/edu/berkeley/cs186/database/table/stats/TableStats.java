@@ -186,7 +186,7 @@ public class TableStats {
    *
    * @param leftIndex the index of the join column for this
    * @param rightStats the TableStats of the right table to be joined
-   * @param leftIndex the index of the join column for the right table
+   * @param rightIndex the index of the join column for the right table
    * @return new TableStats based off of this and params
    */
   public TableStats copyWithJoin(int leftIndex,
@@ -245,6 +245,7 @@ public class TableStats {
     }
 
     int outputSize = (int)(reductionFactor*inputSize);
+    //System.out.println("reduction factor: "+reductionFactor+" numDistinct:"+leftNumDistinct+" "+rightNumDistinct);
 
     return new TableStats(joinedSchema, outputSize, copyHistograms);
   }

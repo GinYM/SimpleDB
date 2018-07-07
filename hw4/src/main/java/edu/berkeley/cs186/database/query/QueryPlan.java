@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.sun.org.apache.xalan.internal.xsltc.runtime.Operators;
+
 import edu.berkeley.cs186.database.Database;
 import edu.berkeley.cs186.database.DatabaseException;
 import edu.berkeley.cs186.database.databox.DataBox;
@@ -46,6 +46,7 @@ public class QueryPlan {
   private boolean hasCount;
   private String averageColumnName;
   private String sumColumnName;
+  private int removeSelectIdx = -1;
 
   /**
    * Creates a new QueryPlan within transaction. The base table is startTableName.
@@ -219,6 +220,8 @@ public class QueryPlan {
     // of each table name to its lowest cost operator.
     Map<Set, QueryOperator> single = new HashMap<>();
     Map<Set, QueryOperator> result = new HashMap<>();
+    //System.out.println(this.joinTableNames.size());
+
     for(String tableName : this.joinTableNames){
       Set tmp1 = new HashSet();
       tmp1.add(tableName);
@@ -226,24 +229,51 @@ public class QueryPlan {
       tmp2.add(tableName);
       single.put(tmp1, minCostSingleAccess(tableName));
       result.put(tmp2, minCostSingleAccess(tableName));
+      //System.out.println(single.get(tmp1).toString());
     }
+    Set tmp1 = new HashSet();
+    tmp1.add(startTableName);
+    Set tmp2 = new HashSet();
+    tmp2.add(startTableName);
+    single.put(tmp1, minCostSingleAccess(startTableName));
+    result.put(tmp2, minCostSingleAccess(startTableName));
 
     // Pass i: On each pass, use the results from the previous pass to find the
     // lowest cost joins with each single table. Repeat until all tables have
     // been joined.
-    for(int i = 0;i<joinTableNames.size()-2;i++){
+    for(int i = 0;i<joinTableNames.size();i++){
       result = minCostJoins(result, single);
+
     }
+    //System.out.println(result.size());
 
 
     // Get the lowest cost operator from the last pass, add GROUP BY and SELECT
     // operators, and return an iterator on the final operator
     this.finalOperator = minCostOperator(result);
     this.addGroupBy();
+    this.addProjects();
+
+    //Schema sch = this.finalOperator.getOutputSchema();
+    //System.out.println(sch.getFieldNames());
+    //System.out.println(finalOperator.getSource().getOutputSchema().getFieldNames());
+    /*if(finalOperator.isIndexScan()){
+      System.out.println(((IndexScanOperator)finalOperator).getColumnName());
+      String rmName = ((IndexScanOperator)finalOperator).getColumnName();
+      int selectIndex = selectColumnNames.indexOf(rmName);
+      this.selectColumnNames.remove(selectIndex);
+      this.selectOperators.remove(selectIndex);
+      this.selectDataBoxes.remove(selectIndex);
+    }
+
+    //this.selectColumnNames.remove(selectIndex);
+    //this.selectOperators.remove(selectIndex);
+    //this.selectDataBoxes.remove(selectIndex);
+
     this.addSelects();
+    */
 
-
-    return this.finalOperator.iterator(); //TODO: HW4 Replace this!!! Allows you to test intermediate functionality
+    return this.finalOperator.execute(); //TODO: HW4 Replace this!!! Allows you to test intermediate functionality
 
     //return ....
   }
@@ -351,6 +381,7 @@ public class QueryPlan {
 
     // 1. Find the cost of a sequential scan of the table
     int minCost = minOp.estimateIOCost();
+    //System.out.println(minCost);
     int colIdx = 0;
 
     // 2. For each eligible index column, find the cost of an index scan of the
@@ -359,8 +390,10 @@ public class QueryPlan {
     for(Integer column : idxColumn){
       QueryOperator op = new IndexScanOperator(this.transaction, table, this.selectColumnNames.get(column),
               this.selectOperators.get(column), this.selectDataBoxes.get(column));
+      //System.out.println(op.estimateIOCost()+" "+minCost);
       if(op.estimateIOCost() < minCost){
         minCost = op.estimateIOCost();
+        //System.out.println(minCost);
         minOp = op;
         colIdx = column;
       }
@@ -373,6 +406,8 @@ public class QueryPlan {
     }else{
       minOp = addEligibleSelections(minOp, -1);
     }
+
+    assert(minOp != null);
 
     return minOp;
   }
@@ -399,11 +434,16 @@ public class QueryPlan {
 
     for (QueryOperator join : allJoins) {
       int joinCost = join.estimateIOCost();
+      System.out.println(joinCost);
       if (joinCost < minCost) {
         minOp = join;
         minCost = joinCost;
+
       }
     }
+    System.out.println(leftOp);
+    System.out.println(rightOp);
+    System.out.println(leftColumn+" "+rightColumn+" "+minCost);
     return minOp;
   }
 
@@ -462,29 +502,52 @@ public class QueryPlan {
      */
     QueryOperator leftOp,rightOp;
     for(Set tables : prevMap.keySet()){
+
       for(int idx = 0; idx < this.joinTableNames.size();idx++){
+        Set tmpTable = new HashSet(tables);
         String[] leftSide = getJoinLeftColumnNameByIndex(idx);
         String[] rightSide = getJoinRightColumnNameByIndex(idx);
         //case1
         if(tables.contains(leftSide[0]) && !tables.contains(rightSide[0])){
           leftOp = prevMap.get(tables);
-          rightOp = pass1Map.get(rightSide[0]);
-          tables.add(rightSide[0]);
+          assert(leftOp!=null);
+          //System.out.println("1");
+          //System.out.println(pass1Map.keySet());
+          //System.out.println(rightSide[0]);
+          Set tmp =  new HashSet();
+          tmp.add(rightSide[0]);
+          rightOp = pass1Map.get(tmp);
+          tmpTable.add(rightSide[0]);
+          assert(rightOp != null);
         }else if(tables.contains(rightSide[0]) && !tables.contains(leftSide[0])){
-          leftOp = pass1Map.get(leftSide[0]);
+          //System.out.println("2");
+          //System.out.println(leftSide[0]);
+          //System.out.println(pass1Map.keySet());
+          Set tmp = new HashSet();
+          tmp.add(leftSide[0]);
+          leftOp = pass1Map.get(tmp);
           rightOp = prevMap.get(tables);
-          tables.add(leftSide[0]);
+          tmpTable.add(leftSide[0]);
         }else{
           continue;
         }
+        //System.out.println(rightOp.toString());
+        //System.out.println(leftOp+"\n"+rightOp.toString()+"\n"+leftSide[1]+"\n"+rightSide[1]+"\n");
+        //System.out.println("left");
+        //System.out.println(leftOp);
+        //System.out.println("right");
+        //System.out.println(rightOp);
+        //System.out.println();
         QueryOperator ret = minCostJoinType(leftOp, rightOp, leftSide[1], rightSide[1]);
-        if(!map.keySet().contains(tables)){
-          map.put(tables, ret);
+        if(!map.keySet().contains(tmpTable)){
+          map.put(tmpTable, ret);
         }else{
-          if(ret.estimateIOCost() <  map.get(tables).estimateIOCost()){
-            map.put(tables, ret);
+          //int oldCost = prevMap.containsKey(tmpTable)?prevMap.get(tmpTable).estimateIOCost():Integer.MAX_VALUE;
+          if( ret.estimateIOCost() <  map.get(tmpTable).estimateIOCost()){
+            map.put(tmpTable, ret);
           }
         }
+        //System.out.println(tables+" "+leftSide[0]+" "+leftSide[1]+" "+rightSide[0]+" "+rightSide[1]+" "+ret.estimateIOCost());
       }
     }
 

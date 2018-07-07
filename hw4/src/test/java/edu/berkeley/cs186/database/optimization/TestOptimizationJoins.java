@@ -120,6 +120,7 @@ public class TestOptimizationJoins {
     Iterator<Record> queryOutput = query.executeOptimal();
 
     QueryOperator finalOperator = query.getFinalOperator();
+    //System.out.println(finalOperator.toString());
     assert(finalOperator.toString().contains("BNLJ"));
 
   }
@@ -271,7 +272,7 @@ public class TestOptimizationJoins {
 
     Table table1 = db.getTable(TABLENAME+"o1");
 
-    //creates a 100 records int 0 to 99
+    //creates a 100 records int 0 to 9
     try{
       for (int i = 0; i < 10; ++i) {
         Record r = createRecordWithAllTypes(false, i, "test", 0.0f);
@@ -300,7 +301,7 @@ public class TestOptimizationJoins {
 
     Table table3 = db.getTable(TABLENAME+"o3");
 
-    //creates a 100 records int 0 to 99
+    //creates a 1000 records int 0 to 999
     try{
       for (int i = 0; i < 1000; ++i) {
         Record r = createRecordWithAllTypes(false, i, "test", 0.0f);
@@ -315,7 +316,7 @@ public class TestOptimizationJoins {
 
     Table table4 = db.getTable(TABLENAME+"o4");
 
-    //creates a 100 records int 0 to 99
+    //creates a 1000 records int 0 to 999
     try{
       for (int i = 0; i < 1000; ++i) {
         Record r = createRecordWithAllTypes(false, i, "test", 0.0f);
@@ -343,6 +344,7 @@ public class TestOptimizationJoins {
     QueryOperator finalOperator = query.getFinalOperator();
 
     //smallest to largest order
+    System.out.println(finalOperator.toString());
     assert(finalOperator.toString().contains("\t\t\ttable: To1"));
     assert(finalOperator.toString().contains("\t\t\ttable: To4"));
     assert(finalOperator.toString().contains("\t\ttable: To2"));

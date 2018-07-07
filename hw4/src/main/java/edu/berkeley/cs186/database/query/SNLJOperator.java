@@ -53,6 +53,8 @@ public class SNLJOperator extends JoinOperator {
         int numRightPages = getRightSource().getStats().getNumPages();
         int numLeftPages = getLeftSource().getStats().getNumPages();
 
+        System.out.println(numLeftRecords+" "+numRightPages+" "+numLeftPages);
+
         return numLeftRecords * numRightPages + numLeftPages;
   }
 
