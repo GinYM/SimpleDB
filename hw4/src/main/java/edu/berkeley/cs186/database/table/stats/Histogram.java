@@ -130,8 +130,11 @@ public class Histogram {
 
     //1. first calculate the min and the max values
     RecordIterator riter = table.iterator();
-    this.minValue = Float.MAX_VALUE;
-    this.maxValue = Float.MIN_VALUE;
+    if(riter.hasNext() == false){
+      return;
+    }
+    this.minValue = quantization(riter.next(), attribute);
+    this.maxValue = minValue;
     float quant;
     while(riter.hasNext()){
       quant = quantization(riter.next(), attribute);
@@ -144,10 +147,7 @@ public class Histogram {
 
     //3. create each bucket object
     for(int i = 0;i<numBuckets;i++){
-      if(i != numBuckets-1 )
-        buckets[i] = new Bucket<>(this.minValue+i*this.width, this.minValue+(i+1)*this.width);
-      else
-        buckets[i] = new Bucket<>(this.minValue+i*this.width, this.maxValue);
+      buckets[i] = new Bucket<>(i*this.width, (i+1)*this.width);
     }
 
     //4. populate the data using the increment(value) method
@@ -401,7 +401,8 @@ public class Histogram {
       }else if(i > idx){
         result[i] = 1;
       }else{
-          result[idx] = (buckets[idx].getEnd()-qvalue)/width;
+        // bug?
+          result[idx] = (buckets[idx].getEnd()-(qvalue-this.minValue))/width;
       }
     }
 
@@ -428,7 +429,8 @@ public class Histogram {
       }else if(i > idx){
         result[i] = 0;
       }else{
-          result[idx] = (qvalue - buckets[idx].getStart())/width;
+        //bug?
+          result[idx] = (qvalue -this.minValue - buckets[idx].getStart())/width;
       }
     }
 
@@ -512,7 +514,7 @@ public class Histogram {
       int newDistinctCount = (int) Math.round(reduction*this.buckets[i].getDistinctCount());
 
       newBuckets[i].setCount(newCount);
-      newBuckets[i].setDistinctCount(newDistinctCount);
+      newBuckets[i].setDistinctCount(newCount);
     }
 
     return new Histogram(newBuckets);

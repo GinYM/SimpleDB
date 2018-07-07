@@ -344,7 +344,7 @@ public class TestOptimizationJoins {
     QueryOperator finalOperator = query.getFinalOperator();
 
     //smallest to largest order
-    System.out.println(finalOperator.toString());
+    //System.out.println(finalOperator.toString());
     assert(finalOperator.toString().contains("\t\t\ttable: To1"));
     assert(finalOperator.toString().contains("\t\t\ttable: To4"));
     assert(finalOperator.toString().contains("\t\ttable: To2"));

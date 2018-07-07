@@ -434,16 +434,16 @@ public class QueryPlan {
 
     for (QueryOperator join : allJoins) {
       int joinCost = join.estimateIOCost();
-      System.out.println(joinCost);
+      //System.out.println(joinCost);
       if (joinCost < minCost) {
         minOp = join;
         minCost = joinCost;
 
       }
     }
-    System.out.println(leftOp);
-    System.out.println(rightOp);
-    System.out.println(leftColumn+" "+rightColumn+" "+minCost);
+    //System.out.println(leftOp);
+    //System.out.println(rightOp);
+    //System.out.println(leftColumn+" "+rightColumn+" "+minCost);
     return minOp;
   }
 
