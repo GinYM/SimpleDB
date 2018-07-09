@@ -41,8 +41,13 @@ public class GroupByOperator extends QueryOperator {
     this.cost = this.estimateIOCost();
   }
 
+
   public Iterator<Record> iterator() throws QueryPlanException, DatabaseException {
     return new GroupByIterator();
+  }
+
+  public String getGroupByColumn(){
+    return groupByColumn;
   }
 
   protected Schema computeSchema() throws QueryPlanException {

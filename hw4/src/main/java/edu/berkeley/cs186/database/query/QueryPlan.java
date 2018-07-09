@@ -684,52 +684,35 @@ public class QueryPlan {
     // TODO: HW4 (CompSci-286a ONLY)
 
     //throw new NotImplementedException();
+    List<String> candidate = new ArrayList<>();
+    candidate.addAll(joinLeftColumnNames);
+    candidate.addAll(joinRightColumnNames);
+    if(groupByColumn != null){
+      candidate.add(groupByColumn);
+    }
     Map<String, List<String>> ret = new HashMap<>();
     for(String name : pass1Map.keySet()){
       QueryOperator op = pass1Map.get(name);
       Schema sch = op.getOutputSchema();
-      List<String> fieldNames = sch.getFieldNames();
+      List<String> columns = getAllIndexColumns(name);
 
-      List<Boolean> checkList = new ArrayList<>(fieldNames.size());
-      for(int i = 0;i<fieldNames.size();i++){
-        checkList.add(true);
-      }
-      Iterator<Record> iter = op.iterator();
-      Record prev = null;
-      Record next = iter.hasNext()? iter.next():null;
-      if(next == null){
-        continue;
-      }
-      int left = fieldNames.size();
-      //System.out.println(checkList);
-      while(left != 0 && next != null){
-        System.out.println(next.getValues());
+      List<String> interestColumn = new ArrayList<>();
 
-        //System.out.println(next.getValues().get(0));
-        //System.out.println("Here??");
-        for(int i = 0;prev != null && i<next.getValues().size();i++){
-          if(checkList.get(i) == true && prev.getValues().get(i).compareTo(next.getValues().get(i)) < 0){
-            checkList.set(i, false);
-          }
-        }
-        left = 0;
-        for(int idx = 0;idx < checkList.size();idx++){
-          if(checkList.get(idx) == true){
-            left++;
-          }
-        }
-        //System.out.println(checkList);
-        prev = next;
-        next = iter.hasNext()?iter.next():null;
+      String exceptCol = "";
+      if(op.isIndexScan()){
+        exceptCol = ((IndexScanOperator)op).getColumnName();
       }
-      //System.out.println(fieldNames);
-      //System.out.println(left);
-      if(left != 0){
-        List<String> tmpList = new ArrayList<>(fieldNames.size());
-        for(int i = 0;i<checkList.size();i++){
-          tmpList.add(fieldNames.get(i));
+
+
+      //System.out.println(exceptCol);
+      //System.out.println(candidate);
+      for(String s : candidate){
+        if(!s.equals(exceptCol) && columns.contains(s) && !interestColumn.contains(s) ){
+          interestColumn.add(s);
         }
-        ret.put(name, tmpList);
+      }
+      if(interestColumn.size()!=0){
+        ret.put(name, interestColumn);
       }
 
     }
