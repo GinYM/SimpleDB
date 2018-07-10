@@ -253,7 +253,11 @@ public class TestLockManager {
         assertFalse(lockMan.holds(t1, r1, LockManager.LockType.X));
         assertTrue(lockMan.holds(t2, r1, LockManager.LockType.S));
 
+        //System.out.println("Here1");
+
         lockMan.release(t2, r1);
+
+        //System.out.println("Here2");
 
         assertTrue(lockMan.holds(t1, r1, LockManager.LockType.X));
         assertFalse(lockMan.holds(t2, r1, LockManager.LockType.S));
@@ -496,6 +500,7 @@ public class TestLockManager {
         lockMan.acquire(t1, r1, LockManager.LockType.X);
 
         assertTrue(lockMan.holds(t1, r0, LockManager.LockType.IX));
+        //System.out.println(lockMan.holds(t1, r1, LockManager.LockType.S));
         assertFalse(lockMan.holds(t1, r1, LockManager.LockType.S));
         assertTrue(lockMan.holds(t1, r1, LockManager.LockType.X));
     }

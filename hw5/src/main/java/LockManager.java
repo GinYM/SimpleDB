@@ -42,6 +42,21 @@ public class LockManager {
         matrix[LockType.IX.ordinal()][LockType.IX.ordinal()] = true;
     }
 
+    private boolean checkImmediate(Transaction transaction, Resource resource, LockType lockType){
+        if(!resourceToLock.containsKey(resource)){
+            return false;
+        }
+        ResourceLock resLock = resourceToLock.get(resource);
+        if(resLock.lockOwners.size() != 1){
+            return false;
+        }
+        if(holds(transaction,resource, LockType.S) && lockType.equals(LockType.X)){
+            return true;
+        }else{
+            return false;
+        }
+    }
+
     /**
      * The acquire method will grant the lock if it is compatible. If the lock
      * is not compatible, then the request will be placed on the requesters
@@ -57,6 +72,14 @@ public class LockManager {
             throw new IllegalArgumentException();
         }
 
+        if( resource.getResourceType().equals(Resource.ResourceType.PAGE) ){
+            if((lockType.equals(LockType.S) || lockType.equals(LockType.X) ) && (!holds(transaction, ((Page)resource).getTable(), LockType.IS )) &&  !holds(transaction, ((Page)resource).getTable(), LockType.IX )){
+                throw new IllegalArgumentException();
+            }
+            //if(lockType.equals(LockType.X) && !holds(transaction,((Page)resource).getTable(), LockType.IX)){
+            //    throw new IllegalArgumentException();
+            //}
+        }
 
         if(!this.resourceToLock.containsKey(resource)){
             resourceToLock.put(resource, new ResourceLock());
@@ -78,16 +101,16 @@ public class LockManager {
                 throw new IllegalArgumentException();
             }
         }
-        if( resource.getResourceType().equals(Resource.ResourceType.PAGE) ){
-            if(lockType.equals(LockType.S) && !holds(transaction, ((Page)resource).getTable(), LockType.IS )){
-                throw new IllegalArgumentException();
-            }
-            if(lockType.equals(LockType.X) && !holds(transaction,((Page)resource).getTable(), LockType.IX)){
-                throw new IllegalArgumentException();
-            }
+
+        if(checkImmediate(transaction, resource, lockType)){
+            release(transaction, resource);
+            rl.lockOwners.add(new Request(transaction, lockType));
+            return;
         }
 
+
         if(compatible(resource, transaction, lockType)){
+
             rl.lockOwners.add(new Request(transaction, lockType));
         }else{
             rl.requestersQueue.add(new Request(transaction, lockType));
@@ -108,8 +131,16 @@ public class LockManager {
         if(!resourceToLock.containsKey(resource)){
             return true;
         }
+        if(checkImmediate(transaction,resource, lockType)){
+            return true;
+        }
+
+
         ResourceLock rLock = resourceToLock.get(resource);
         for(Request req : rLock.lockOwners){
+            //System.out.println(req.lockType);
+            //System.out.println(lockType);
+            //System.out.println(matrix[req.lockType.ordinal()][lockType.ordinal()]);
             if(matrix[req.lockType.ordinal()][lockType.ordinal()] == false){
                 return false;
             }
@@ -130,7 +161,7 @@ public class LockManager {
             throw new IllegalArgumentException();
         }
         if(!resourceToLock.containsKey(resource)){
-            return;
+            throw new IllegalArgumentException();
         }
         ResourceLock resLock = resourceToLock.get(resource);
         Request findReq = null;
@@ -140,6 +171,7 @@ public class LockManager {
                 break;
             }
         }
+        //System.out.println(findReq);
         if(findReq == null){
             throw new IllegalArgumentException();
         }
@@ -165,16 +197,18 @@ public class LockManager {
      private void promote(Resource resource) {
          // HW5: To do
          ResourceLock resLock = resourceToLock.get(resource);
-         while(resLock.requestersQueue.size()!=0){
+         int reqSize = resLock.requestersQueue.size();
+         while(reqSize > 0){
              Request req = resLock.requestersQueue.pollFirst();
              if(compatible(resource, req.transaction, req.lockType)){
                  req.transaction.wake();
                  acquire(req.transaction,resource, req.lockType);
 
-                 break;
+                 //break;
              }else{
                  resLock.requestersQueue.add(req);
              }
+             reqSize--;
          }
          return;
      }
