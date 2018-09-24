@@ -143,7 +143,7 @@ public class Database {
       String indexName = tableName + "," + colName;
       Path p = Paths.get(this.fileDir, indexName + BPlusTree.FILENAME_EXTENSION);
       try {
-      this.indexLookup.put(indexName, new BPlusTree(p.toString(), colType,
+        this.indexLookup.put(indexName, new BPlusTree(p.toString(), colType,
                            BPlusTree.maxOrder(Page.pageSize, colType)));
       } catch (BPlusTreeException e) {
         throw new DatabaseException(e.getMessage());
@@ -566,7 +566,7 @@ public class Database {
 
     private BPlusTree resolveIndexFromName(String tableName, String columnName) throws DatabaseException {
       while (aliasMaps.containsKey(tableName)) {
-        tableName = aliasMaps.get(tableName);
+        tableName = aliasMaps.get(tableName); // real name
       }
       if (columnName.contains(".")) {
         String columnPrefix = columnName.split("\\.")[0];

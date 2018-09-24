@@ -380,7 +380,7 @@ public class QueryPlan {
 
     //TODO: HW4 Implement
 
-    // 1. Find the cost of a sequential scan of the table
+    // 1. Find the cost of a sequential scan of the table, number of page in that table
     int minCost = minOp.estimateIOCost();
     //System.out.println(minCost);
     int colIdx = 0;

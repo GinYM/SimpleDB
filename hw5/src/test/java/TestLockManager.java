@@ -5,522 +5,355 @@ import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 
 public class TestLockManager {
+
     private LockManager lockMan;
 
     @Test
     public void testSimpleAcquire() {
-        lockMan = new LockManager();
+        /**
+         * Acquire shared and exclusive locks
+         */
+        lockMan = new LockManager(LockManager.DeadlockAvoidanceType.None);
 
         Transaction t1 = new Transaction("t1", 1);
         Transaction t2 = new Transaction("t2", 2);
 
-        Resource r1 = new Table("A");
-        Resource r2 = new Table("B");
+        lockMan.acquire(t1, "A", LockManager.LockType.Shared);
+        lockMan.acquire(t2, "B", LockManager.LockType.Exclusive);
 
-        lockMan.acquire(t1, r1, LockManager.LockType.S);
-        lockMan.acquire(t2, r2, LockManager.LockType.X);
+        assertTrue(lockMan.holds(t1, "A", LockManager.LockType.Shared));
+        assertFalse(lockMan.holds(t1, "A", LockManager.LockType.Exclusive));
 
-        assertTrue(lockMan.holds(t1, r1, LockManager.LockType.S));
-        assertFalse(lockMan.holds(t1, r1, LockManager.LockType.X));
+        assertTrue(lockMan.holds(t2, "B", LockManager.LockType.Exclusive));
+        assertFalse(lockMan.holds(t2, "B", LockManager.LockType.Shared));
 
-        assertTrue(lockMan.holds(t2, r2, LockManager.LockType.X));
-        assertFalse(lockMan.holds(t2, r2, LockManager.LockType.S));
     }
 
     @Test
     public void testSimpleRelease() {
-        lockMan = new LockManager();
+        /**
+         * Lock release without upgrade
+         */
+        lockMan = new LockManager(LockManager.DeadlockAvoidanceType.None);
 
         Transaction t1 = new Transaction("t1", 1);
 
-        Resource r1 = new Table("A");
+        lockMan.acquire(t1, "A", LockManager.LockType.Shared);
+        assertTrue(lockMan.holds(t1, "A", LockManager.LockType.Shared));
 
-        lockMan.acquire(t1, r1, LockManager.LockType.S);
-        assertTrue(lockMan.holds(t1, r1, LockManager.LockType.S));
-
-        lockMan.release(t1, r1);
-        assertFalse(lockMan.holds(t1, r1, LockManager.LockType.S));
+        lockMan.release(t1, "A");
+        assertFalse(lockMan.holds(t1, "A", LockManager.LockType.Shared));
     }
 
     @Test
-    public void testTwoSDifferentTransaction() {
-        lockMan = new LockManager();
-
-        Transaction t1 = new Transaction("t1", 1);
-        Transaction t2 = new Transaction("t2", 2);
-
-        Resource r1 = new Table("A");
-
-        lockMan.acquire(t1, r1, LockManager.LockType.S);
-        lockMan.acquire(t2, r1, LockManager.LockType.S);
-
-        assertTrue(lockMan.holds(t1, r1, LockManager.LockType.S));
-        assertTrue(lockMan.holds(t2, r1, LockManager.LockType.S));
-
-        lockMan.release(t1, r1);
-
-        assertFalse(lockMan.holds(t1, r1, LockManager.LockType.S));
-        assertTrue(lockMan.holds(t2, r1, LockManager.LockType.S));
-
-        lockMan.release(t2, r1);
-
-        assertFalse(lockMan.holds(t2, r1, LockManager.LockType.S));
-    }
-
-    @Test
-    public void testSAndXDifferentTransactions() {
-        lockMan = new LockManager();
+    public void testTwoSharedDifferentTransaction() {
+        /**
+         * Two threads can acquire shared lock on same table
+         */
+        lockMan = new LockManager(LockManager.DeadlockAvoidanceType.None);
 
         Transaction t1 = new Transaction("t1", 1);
         Transaction t2 = new Transaction("t2", 2);
 
-        Resource r1 = new Table("A");
+        lockMan.acquire(t1, "A", LockManager.LockType.Shared);
+        lockMan.acquire(t2, "A", LockManager.LockType.Shared);
 
-        lockMan.acquire(t1, r1, LockManager.LockType.S);
-        lockMan.acquire(t2, r1, LockManager.LockType.X);
+        assertTrue(lockMan.holds(t1, "A", LockManager.LockType.Shared));
+        assertTrue(lockMan.holds(t2, "A", LockManager.LockType.Shared));
 
-        assertTrue(lockMan.holds(t1, r1, LockManager.LockType.S));
-        assertFalse(lockMan.holds(t2, r1, LockManager.LockType.X));
+        lockMan.release(t1, "A");
 
-        lockMan.release(t1, r1);
+        assertFalse(lockMan.holds(t1, "A", LockManager.LockType.Shared));
+        assertTrue(lockMan.holds(t2, "A", LockManager.LockType.Shared));
 
-        assertFalse(lockMan.holds(t1, r1, LockManager.LockType.S));
-        assertTrue(lockMan.holds(t2, r1, LockManager.LockType.X));
+        lockMan.release(t2, "A");
 
-        lockMan.release(t2, r1);
-
-        assertFalse(lockMan.holds(t2, r1, LockManager.LockType.X));
+        assertFalse(lockMan.holds(t2, "A", LockManager.LockType.Shared));
     }
 
     @Test
-    public void testTwoXDifferentTransaction() {
-        lockMan = new LockManager();
+    public void testSharedAndExclusiveDifferentTransactions() {
+        /**
+         * Prevents incompatible locks on same object. Upgrade from
+         *  FIFO queue on lock release.
+         */
+        lockMan = new LockManager(LockManager.DeadlockAvoidanceType.None);
 
         Transaction t1 = new Transaction("t1", 1);
         Transaction t2 = new Transaction("t2", 2);
 
-        Resource r1 = new Table("A");
+        lockMan.acquire(t1, "A", LockManager.LockType.Shared);
+        lockMan.acquire(t2, "A", LockManager.LockType.Exclusive);
 
-        lockMan.acquire(t1, r1, LockManager.LockType.X);
-        lockMan.acquire(t2, r1, LockManager.LockType.X);
+        assertTrue(lockMan.holds(t1, "A", LockManager.LockType.Shared));
+        assertFalse(lockMan.holds(t2, "A", LockManager.LockType.Exclusive));
 
-        assertTrue(lockMan.holds(t1, r1, LockManager.LockType.X));
-        assertFalse(lockMan.holds(t2, r1, LockManager.LockType.X));
+        lockMan.release(t1, "A");
 
-        lockMan.release(t1, r1);
+        assertFalse(lockMan.holds(t1, "A", LockManager.LockType.Shared));
+        assertTrue(lockMan.holds(t2, "A", LockManager.LockType.Exclusive));
 
-        assertFalse(lockMan.holds(t1, r1, LockManager.LockType.X));
-        assertTrue(lockMan.holds(t2, r1, LockManager.LockType.X));
+        lockMan.release(t2, "A");
 
-        lockMan.release(t2, r1);
-
-        assertFalse(lockMan.holds(t2, r1, LockManager.LockType.X));
+        assertFalse(lockMan.holds(t2, "A", LockManager.LockType.Exclusive));
     }
 
     @Test
-    public void testFIFOQueueLocks() {
-        lockMan = new LockManager();
+    public void testTwoExclusiveDifferentTransaction() {
+        /**
+         * Exclusive locks not shared. Upgrade from FIFO queue on lock release.
+         */
+        lockMan = new LockManager(LockManager.DeadlockAvoidanceType.None);
+
+        Transaction t1 = new Transaction("t1", 1);
+        Transaction t2 = new Transaction("t2", 2);
+
+        lockMan.acquire(t1, "A", LockManager.LockType.Exclusive);
+        lockMan.acquire(t2, "A", LockManager.LockType.Exclusive);
+
+        assertTrue(lockMan.holds(t1, "A", LockManager.LockType.Exclusive));
+        assertFalse(lockMan.holds(t2, "A", LockManager.LockType.Exclusive));
+
+        lockMan.release(t1, "A");
+
+        assertFalse(lockMan.holds(t1, "A", LockManager.LockType.Exclusive));
+        assertTrue(lockMan.holds(t2, "A", LockManager.LockType.Exclusive));
+
+        lockMan.release(t2, "A");
+
+        assertFalse(lockMan.holds(t2, "A", LockManager.LockType.Exclusive));
+    }
+
+    @Test
+    public void testSimpleUpgrade() {
+        /**
+         * Upgrades shared to exclusive lock.
+         */
+        lockMan = new LockManager(LockManager.DeadlockAvoidanceType.None);
+
+        Transaction t1 = new Transaction("t1", 1);
+
+        lockMan.acquire(t1, "A", LockManager.LockType.Shared);
+
+        assertTrue(lockMan.holds(t1, "A", LockManager.LockType.Shared));
+
+        lockMan.acquire(t1, "A", LockManager.LockType.Exclusive);
+
+        assertFalse(lockMan.holds(t1, "A", LockManager.LockType.Shared));
+        assertTrue(lockMan.holds(t1, "A", LockManager.LockType.Exclusive));
+    }
+
+    @Test
+    public void testHardUpgrade1() {
+        /**
+         * Upgrades shared lock to exclusive lock. Priority given to transaction
+         *  that already has shared lock.
+         */
+        lockMan = new LockManager(LockManager.DeadlockAvoidanceType.None);
+
+        Transaction t1 = new Transaction("t1", 1);
+        Transaction t2 = new Transaction("t2", 2);
+
+        lockMan.acquire(t1, "A", LockManager.LockType.Shared);
+        lockMan.acquire(t2, "A", LockManager.LockType.Exclusive);
+
+        assertTrue(lockMan.holds(t1, "A", LockManager.LockType.Shared));
+        assertFalse(lockMan.holds(t2, "A", LockManager.LockType.Exclusive));
+
+        lockMan.acquire(t1, "A", LockManager.LockType.Exclusive);
+
+        assertTrue(lockMan.holds(t1, "A", LockManager.LockType.Exclusive));
+        assertFalse(lockMan.holds(t2, "A", LockManager.LockType.Exclusive));
+
+        lockMan.release(t1, "A");
+
+        assertFalse(lockMan.holds(t1, "A", LockManager.LockType.Exclusive));
+        assertFalse(lockMan.holds(t1, "A", LockManager.LockType.Shared));
+        assertTrue(lockMan.holds(t2, "A", LockManager.LockType.Exclusive));
+
+        lockMan.release(t2, "A");
+
+        assertFalse(lockMan.holds(t1, "A", LockManager.LockType.Exclusive));
+        assertFalse(lockMan.holds(t1, "A", LockManager.LockType.Shared));
+        assertFalse(lockMan.holds(t2, "A", LockManager.LockType.Exclusive));
+    }
+
+    @Test
+    public void testHardUpgrade2() {
+        /**
+         * Cannot upgrade to exclusive lock if multiple transaction share the
+         * lock. Once shared locks are released, upgrade to exclusive possible.
+         */
+        lockMan = new LockManager(LockManager.DeadlockAvoidanceType.None);
+
+        Transaction t1 = new Transaction("t1", 1);
+        Transaction t2 = new Transaction("t2", 2);
+
+        lockMan.acquire(t1, "A", LockManager.LockType.Shared);
+        lockMan.acquire(t2, "A", LockManager.LockType.Shared);
+
+        assertTrue(lockMan.holds(t1, "A", LockManager.LockType.Shared));
+        assertTrue(lockMan.holds(t2, "A", LockManager.LockType.Shared));
+
+        lockMan.acquire(t1, "A", LockManager.LockType.Exclusive);
+
+        assertTrue(lockMan.holds(t1, "A", LockManager.LockType.Shared));
+        assertFalse(lockMan.holds(t1, "A", LockManager.LockType.Exclusive));
+        assertTrue(lockMan.holds(t2, "A", LockManager.LockType.Shared));
+
+        lockMan.release(t2, "A");
+
+        assertTrue(lockMan.holds(t1, "A", LockManager.LockType.Exclusive));
+        assertFalse(lockMan.holds(t2, "A", LockManager.LockType.Shared));
+
+        lockMan.release(t1, "A");
+
+        assertFalse(lockMan.holds(t1, "A", LockManager.LockType.Exclusive));
+        assertFalse(lockMan.holds(t2, "A", LockManager.LockType.Shared));
+
+    }
+
+    @Test
+    public void testHardUpgrade3() {
+        /**
+         * Check that lock upgrades are prioritized when promoting from the request
+         *  queue.
+         */
+        lockMan = new LockManager(LockManager.DeadlockAvoidanceType.None);
 
         Transaction t1 = new Transaction("t1", 1);
         Transaction t2 = new Transaction("t2", 2);
         Transaction t3 = new Transaction("t3", 3);
 
-        Resource r1 = new Table("A");
+        lockMan.acquire(t1, "A", LockManager.LockType.Shared);
+        lockMan.acquire(t2, "A", LockManager.LockType.Shared);
+        lockMan.acquire(t3, "A", LockManager.LockType.Exclusive);
 
-        lockMan.acquire(t1, r1, LockManager.LockType.X);
-        lockMan.acquire(t2, r1, LockManager.LockType.X);
-        lockMan.acquire(t3, r1, LockManager.LockType.X);
+        assertTrue(lockMan.holds(t1, "A", LockManager.LockType.Shared));
+        assertTrue(lockMan.holds(t2, "A", LockManager.LockType.Shared));
+        assertFalse(lockMan.holds(t3, "A", LockManager.LockType.Exclusive));
 
-        assertTrue(lockMan.holds(t1, r1, LockManager.LockType.X));
-        assertFalse(lockMan.holds(t2, r1, LockManager.LockType.X));
-        assertFalse(lockMan.holds(t3, r1, LockManager.LockType.X));
+        lockMan.acquire(t1, "A", LockManager.LockType.Exclusive);
 
-        lockMan.release(t1, r1);
+        assertTrue(lockMan.holds(t1, "A", LockManager.LockType.Shared));
+        assertTrue(lockMan.holds(t2, "A", LockManager.LockType.Shared));
+        assertFalse(lockMan.holds(t3, "A", LockManager.LockType.Exclusive));
 
-        assertFalse(lockMan.holds(t1, r1, LockManager.LockType.X));
-        assertTrue(lockMan.holds(t2, r1, LockManager.LockType.X));
-        assertFalse(lockMan.holds(t3, r1, LockManager.LockType.X));
+        lockMan.release(t2, "A");
 
-        lockMan.release(t2, r1);
+        assertTrue(lockMan.holds(t1, "A", LockManager.LockType.Exclusive));
+        assertFalse(lockMan.holds(t2, "A", LockManager.LockType.Shared));
+        assertFalse(lockMan.holds(t3, "A", LockManager.LockType.Exclusive));
 
-        assertFalse(lockMan.holds(t1, r1, LockManager.LockType.X));
-        assertFalse(lockMan.holds(t2, r1, LockManager.LockType.X));
-        assertTrue(lockMan.holds(t3, r1, LockManager.LockType.X));
+        lockMan.release(t1, "A");
+
+        assertFalse(lockMan.holds(t1, "A", LockManager.LockType.Exclusive));
+        assertTrue(lockMan.holds(t3, "A", LockManager.LockType.Exclusive));
 
     }
 
     @Test
-    public void testManySPromoteSimultaneous() {
-        lockMan = new LockManager();
+    public void testFIFOQueueLocks() {
+        /**
+         * Gives priority based on position in FIFO queue. Requests for conflicting
+         *  locks handled in order
+         */
+        lockMan = new LockManager(LockManager.DeadlockAvoidanceType.None);
+
+        Transaction t1 = new Transaction("t1", 1);
+        Transaction t2 = new Transaction("t2", 2);
+        Transaction t3 = new Transaction("t3", 3);
+
+        lockMan.acquire(t1, "A", LockManager.LockType.Exclusive);
+        lockMan.acquire(t2, "A", LockManager.LockType.Exclusive);
+        lockMan.acquire(t3, "A", LockManager.LockType.Exclusive);
+
+        assertTrue(lockMan.holds(t1, "A", LockManager.LockType.Exclusive));
+        assertFalse(lockMan.holds(t2, "A", LockManager.LockType.Exclusive));
+        assertFalse(lockMan.holds(t3, "A", LockManager.LockType.Exclusive));
+
+        lockMan.release(t1, "A");
+
+        assertFalse(lockMan.holds(t1, "A", LockManager.LockType.Exclusive));
+        assertTrue(lockMan.holds(t2, "A", LockManager.LockType.Exclusive));
+        assertFalse(lockMan.holds(t3, "A", LockManager.LockType.Exclusive));
+
+        lockMan.release(t2, "A");
+
+        assertFalse(lockMan.holds(t1, "A", LockManager.LockType.Exclusive));
+        assertFalse(lockMan.holds(t2, "A", LockManager.LockType.Exclusive));
+        assertTrue(lockMan.holds(t3, "A", LockManager.LockType.Exclusive));
+
+    }
+
+    @Test
+    public void testManySharedPromoteSimultaneous() {
+        /**
+         * Promotes multiple locks at once if possible. In this example, multiple
+         *  shared locks can be upgraded at once after the exclusive lock is
+         *  released.
+         */
+        lockMan = new LockManager(LockManager.DeadlockAvoidanceType.None);
 
         Transaction t1 = new Transaction("t1", 1);
         Transaction t2 = new Transaction("t2", 2);
         Transaction t3 = new Transaction("t3", 3);
         Transaction t4 = new Transaction("t4", 4);
 
-        Resource r1 = new Table("A");
+        lockMan.acquire(t1, "A", LockManager.LockType.Exclusive);
+        lockMan.acquire(t2, "A", LockManager.LockType.Shared);
+        lockMan.acquire(t3, "A", LockManager.LockType.Shared);
+        lockMan.acquire(t4, "A", LockManager.LockType.Shared);
 
-        lockMan.acquire(t1, r1, LockManager.LockType.X);
-        lockMan.acquire(t2, r1, LockManager.LockType.S);
-        lockMan.acquire(t3, r1, LockManager.LockType.S);
-        lockMan.acquire(t4, r1, LockManager.LockType.S);
+        assertTrue(lockMan.holds(t1, "A", LockManager.LockType.Exclusive));
+        assertFalse(lockMan.holds(t2, "A", LockManager.LockType.Shared));
+        assertFalse(lockMan.holds(t3, "A", LockManager.LockType.Shared));
+        assertFalse(lockMan.holds(t4, "A", LockManager.LockType.Shared));
 
-        assertTrue(lockMan.holds(t1, r1, LockManager.LockType.X));
-        assertFalse(lockMan.holds(t2, r1, LockManager.LockType.S));
-        assertFalse(lockMan.holds(t3, r1, LockManager.LockType.S));
-        assertFalse(lockMan.holds(t4, r1, LockManager.LockType.S));
+        lockMan.release(t1, "A");
 
-        lockMan.release(t1, r1);
+        assertFalse(lockMan.holds(t1, "A", LockManager.LockType.Exclusive));
+        assertTrue(lockMan.holds(t2, "A", LockManager.LockType.Shared));
+        assertTrue(lockMan.holds(t3, "A", LockManager.LockType.Shared));
+        assertTrue(lockMan.holds(t4, "A", LockManager.LockType.Shared));
 
-        assertFalse(lockMan.holds(t1, r1, LockManager.LockType.X));
-        assertTrue(lockMan.holds(t2, r1, LockManager.LockType.S));
-        assertTrue(lockMan.holds(t3, r1, LockManager.LockType.S));
-        assertTrue(lockMan.holds(t4, r1, LockManager.LockType.S));
+        lockMan.release(t2, "A");
+        lockMan.release(t3, "A");
+        lockMan.release(t4, "A");
 
-        lockMan.release(t2, r1);
-        lockMan.release(t3, r1);
-        lockMan.release(t4, r1);
-
-        assertFalse(lockMan.holds(t1, r1, LockManager.LockType.X));
-        assertFalse(lockMan.holds(t2, r1, LockManager.LockType.S));
-        assertFalse(lockMan.holds(t3, r1, LockManager.LockType.S));
-        assertFalse(lockMan.holds(t4, r1, LockManager.LockType.S));
+        assertFalse(lockMan.holds(t1, "A", LockManager.LockType.Exclusive));
+        assertFalse(lockMan.holds(t2, "A", LockManager.LockType.Shared));
+        assertFalse(lockMan.holds(t3, "A", LockManager.LockType.Shared));
+        assertFalse(lockMan.holds(t4, "A", LockManager.LockType.Shared));
 
     }
 
     @Test
     public void testStatusUpdates() {
-        lockMan = new LockManager();
+        /**
+         * Check if status are updated properly when a transaction is placed in
+         *  and removed from the waiting queue.
+         */
+        lockMan = new LockManager(LockManager.DeadlockAvoidanceType.None);
 
         Transaction t1 = new Transaction("t1", 1);
         Transaction t2 = new Transaction("t2", 2);
 
-        Resource r1 = new Table("A");
+        lockMan.acquire(t1, "A", LockManager.LockType.Exclusive);
+        lockMan.acquire(t2, "A", LockManager.LockType.Exclusive);
 
-        lockMan.acquire(t1, r1, LockManager.LockType.X);
-        lockMan.acquire(t2, r1, LockManager.LockType.X);
-
-        assertTrue(lockMan.holds(t1, r1, LockManager.LockType.X));
-        assertFalse(lockMan.holds(t2, r1, LockManager.LockType.X));
+        assertTrue(lockMan.holds(t1, "A", LockManager.LockType.Exclusive));
+        assertFalse(lockMan.holds(t2, "A", LockManager.LockType.Exclusive));
         assertEquals(Transaction.Status.Running, t1.getStatus());
         assertEquals(Transaction.Status.Waiting, t2.getStatus());
 
-        lockMan.release(t1, r1);
+        lockMan.release(t1, "A");
 
-        assertFalse(lockMan.holds(t1, r1, LockManager.LockType.X));
-        assertTrue(lockMan.holds(t2, r1, LockManager.LockType.X));
+        assertFalse(lockMan.holds(t1, "A", LockManager.LockType.Exclusive));
+        assertTrue(lockMan.holds(t2, "A", LockManager.LockType.Exclusive));
         assertEquals(Transaction.Status.Running, t1.getStatus());
         assertEquals(Transaction.Status.Running, t2.getStatus());
 
-    }
-
-    @Test
-    public void testTableImmediateUpgrade() {
-        lockMan = new LockManager();
-
-        Transaction t1 = new Transaction("t1", 1);
-
-        Resource r1 = new Table("A");
-
-        lockMan.acquire(t1, r1, LockManager.LockType.S);
-
-        assertTrue(lockMan.holds(t1, r1, LockManager.LockType.S));
-
-        lockMan.acquire(t1, r1, LockManager.LockType.X);
-
-        assertFalse(lockMan.holds(t1, r1, LockManager.LockType.S));
-        assertTrue(lockMan.holds(t1, r1, LockManager.LockType.X));
-    }
-
-    @Test
-    public void testTableEventualUpgrade() {
-        lockMan = new LockManager();
-
-        Transaction t1 = new Transaction("t1", 1);
-        Transaction t2 = new Transaction("t2", 2);
-
-        Resource r1 = new Table("A");
-
-        lockMan.acquire(t1, r1, LockManager.LockType.S);
-        lockMan.acquire(t2, r1, LockManager.LockType.S);
-
-        assertTrue(lockMan.holds(t1, r1, LockManager.LockType.S));
-        assertTrue(lockMan.holds(t2, r1, LockManager.LockType.S));
-
-        lockMan.acquire(t1, r1, LockManager.LockType.X);
-
-        assertTrue(lockMan.holds(t1, r1, LockManager.LockType.S));
-        assertFalse(lockMan.holds(t1, r1, LockManager.LockType.X));
-        assertTrue(lockMan.holds(t2, r1, LockManager.LockType.S));
-
-        //System.out.println("Here1");
-
-        lockMan.release(t2, r1);
-
-        //System.out.println("Here2");
-
-        assertTrue(lockMan.holds(t1, r1, LockManager.LockType.X));
-        assertFalse(lockMan.holds(t2, r1, LockManager.LockType.S));
-
-        lockMan.release(t1, r1);
-
-        assertFalse(lockMan.holds(t1, r1, LockManager.LockType.X));
-        assertFalse(lockMan.holds(t2, r1, LockManager.LockType.S));
-
-    }
-
-    @Test
-    public void skipQueue() {
-        lockMan = new LockManager();
-
-        Transaction t1 = new Transaction("t1", 1);
-        Transaction t2 = new Transaction("t2", 2);
-        Transaction t3 = new Transaction("t3", 2);
-
-        Resource r1 = new Table("A");
-
-        lockMan.acquire(t1, r1, LockManager.LockType.S);
-        lockMan.acquire(t2, r1, LockManager.LockType.S);
-        lockMan.acquire(t3, r1, LockManager.LockType.X);
-        lockMan.acquire(t2, r1, LockManager.LockType.X);
-
-        assertEquals(Transaction.Status.Waiting, t3.getStatus());
-        assertTrue(lockMan.holds(t1, r1, LockManager.LockType.S));
-        assertTrue(lockMan.holds(t2, r1, LockManager.LockType.S));
-        assertFalse(lockMan.holds(t2, r1, LockManager.LockType.X));
-
-        lockMan.release(t1, r1);
-
-        assertTrue(lockMan.holds(t2, r1, LockManager.LockType.X));
-    }
-
-    @Test
-    public void testIntentLocks() {
-        lockMan = new LockManager();
-
-        Transaction t1 = new Transaction("t1", 1);
-        Transaction t2 = new Transaction("t2", 2);
-
-        Table a = new Table("A");
-        Resource r0 = a;
-        Resource r1 = new Page("1", a);
-        Resource r2 = new Page("2", a);
-
-        lockMan.acquire(t1, r0, LockManager.LockType.IS);
-        lockMan.acquire(t1, r1, LockManager.LockType.S);
-        lockMan.acquire(t2, r0, LockManager.LockType.IX);
-        lockMan.acquire(t2, r2, LockManager.LockType.X);
-
-        assertTrue(lockMan.holds(t1, r0, LockManager.LockType.IS));
-        assertTrue(lockMan.holds(t2, r0, LockManager.LockType.IX));
-        assertTrue(lockMan.holds(t1, r1, LockManager.LockType.S));
-        assertTrue(lockMan.holds(t2, r2, LockManager.LockType.X));
-    }
-
-    @Test
-    public void testSharedPage() {
-        lockMan = new LockManager();
-
-        Transaction t1 = new Transaction("t1", 1);
-        Transaction t2 = new Transaction("t2", 2);
-
-        Table a = new Table("A");
-        Resource r0 = a;
-        Resource r1 = new Page("1", a);
-        lockMan.acquire(t1, r0, LockManager.LockType.IS);
-        lockMan.acquire(t2, r0, LockManager.LockType.IS);
-        lockMan.acquire(t1, r1, LockManager.LockType.S);
-        lockMan.acquire(t2, r1, LockManager.LockType.S);
-
-        assertTrue(lockMan.holds(t1, r0, LockManager.LockType.IS));
-        assertTrue(lockMan.holds(t2, r0, LockManager.LockType.IS));
-        assertTrue(lockMan.holds(t1, r1, LockManager.LockType.S));
-        assertTrue(lockMan.holds(t2, r1, LockManager.LockType.S));
-    }
-
-    @Test
-    public void testIXandIS() {
-        lockMan = new LockManager();
-
-        Transaction t1 = new Transaction("t1", 1);
-        Transaction t2 = new Transaction("t2", 2);
-
-        Table a = new Table("A");
-        Resource r0 = a;
-        Resource r1 = new Page("1", a);
-        Resource r2 = new Page("2", a);
-        lockMan.acquire(t1, r0, LockManager.LockType.IX);
-        lockMan.acquire(t2, r0, LockManager.LockType.IS);
-        lockMan.acquire(t1, r1, LockManager.LockType.X);
-        lockMan.acquire(t2, r2, LockManager.LockType.S);
-
-        assertTrue(lockMan.holds(t1, r0, LockManager.LockType.IX));
-        assertTrue(lockMan.holds(t2, r0, LockManager.LockType.IS));
-        assertTrue(lockMan.holds(t1, r1, LockManager.LockType.X));
-        assertTrue(lockMan.holds(t2, r2, LockManager.LockType.S));
-    }
-
-    @Test
-    public void testIXandIX() {
-        lockMan = new LockManager();
-
-        Transaction t1 = new Transaction("t1", 1);
-        Transaction t2 = new Transaction("t2", 2);
-
-        Table a = new Table("A");
-        Resource r0 = a;
-        Resource r1 = new Page("1", a);
-        Resource r2 = new Page("2", a);
-        lockMan.acquire(t1, r0, LockManager.LockType.IX);
-        lockMan.acquire(t2, r0, LockManager.LockType.IX);
-        lockMan.acquire(t1, r1, LockManager.LockType.X);
-        lockMan.acquire(t2, r2, LockManager.LockType.X);
-
-        assertTrue(lockMan.holds(t1, r0, LockManager.LockType.IX));
-        assertTrue(lockMan.holds(t2, r0, LockManager.LockType.IX));
-        assertTrue(lockMan.holds(t1, r1, LockManager.LockType.X));
-        assertTrue(lockMan.holds(t2, r2, LockManager.LockType.X));
-    }
-
-    @Test
-    public void testSandIS() {
-        lockMan = new LockManager();
-
-        Transaction t1 = new Transaction("t1", 1);
-        Transaction t2 = new Transaction("t2", 2);
-
-        Table a = new Table("A");
-        Resource r0 = a;
-        Resource r1 = new Page("1", a);
-        lockMan.acquire(t1, r0, LockManager.LockType.S);
-        lockMan.acquire(t2, r0, LockManager.LockType.IS);
-        lockMan.acquire(t2, r1, LockManager.LockType.S);
-        lockMan.release(t1, r0);
-        assertTrue(lockMan.holds(t2, r0, LockManager.LockType.IS));
-        assertTrue(lockMan.holds(t2, r1, LockManager.LockType.S));
-        assertFalse(lockMan.holds(t1, r0, LockManager.LockType.S));
-    }
-
-    @Test
-    public void testIXandX() {
-        lockMan = new LockManager();
-
-        Transaction t1 = new Transaction("t1", 1);
-        Transaction t2 = new Transaction("t2", 2);
-
-        Table a = new Table("A");
-        Resource r0 = a;
-
-        lockMan.acquire(t1, r0, LockManager.LockType.IX);
-        lockMan.acquire(t2, r0, LockManager.LockType.X);
-
-        assertTrue(lockMan.holds(t1, r0, LockManager.LockType.IX));
-        assertFalse(lockMan.holds(t2, r0, LockManager.LockType.X));
-    }
-
-    @Test
-    public void testSharedIntentConflict() {
-        lockMan = new LockManager();
-
-        Transaction t1 = new Transaction("t1", 1);
-        Transaction t2 = new Transaction("t2", 2);
-
-        Table a = new Table("A");
-        Resource r0 = a;
-        Resource r1 = new Page("1", a);
-
-        lockMan.acquire(t1, r0, LockManager.LockType.IS);
-        lockMan.acquire(t2, r0, LockManager.LockType.IX);
-        lockMan.acquire(t1, r1, LockManager.LockType.S);
-        lockMan.acquire(t2, r1, LockManager.LockType.X);
-
-        assertTrue(lockMan.holds(t1, r0, LockManager.LockType.IS));
-        assertTrue(lockMan.holds(t2, r0, LockManager.LockType.IX));
-        assertTrue(lockMan.holds(t1, r1, LockManager.LockType.S));
-        assertFalse(lockMan.holds(t2, r1, LockManager.LockType.X));
-    }
-
-    @Test
-    public void testIntentPromote() {
-        lockMan = new LockManager();
-
-        Transaction t1 = new Transaction("t1", 1);
-        Transaction t2 = new Transaction("t2", 2);
-
-        Table a = new Table("A");
-        Resource r0 = a;
-
-        lockMan.acquire(t1, r0, LockManager.LockType.S);
-        lockMan.acquire(t2, r0, LockManager.LockType.IX);
-
-        assertTrue(lockMan.holds(t1, r0, LockManager.LockType.S));
-        assertFalse(lockMan.holds(t2, r0, LockManager.LockType.IX));
-
-        lockMan.release(t1, r0);
-
-        assertFalse(lockMan.holds(t1, r0, LockManager.LockType.S));
-        assertTrue(lockMan.holds(t2, r0, LockManager.LockType.IX));
-    }
-
-    @Test
-    public void testPagePromote() {
-        lockMan = new LockManager();
-
-        Transaction t1 = new Transaction("t1", 1);
-        Transaction t2 = new Transaction("t2", 2);
-
-        Table a = new Table("A");
-        Resource r0 = a;
-        Resource r1 = new Page("1", a);
-
-        lockMan.acquire(t1, r0, LockManager.LockType.IS);
-        lockMan.acquire(t2, r0, LockManager.LockType.IX);
-        lockMan.acquire(t1, r1, LockManager.LockType.S);
-        lockMan.acquire(t2, r1, LockManager.LockType.X);
-        lockMan.release(t1, r1);
-
-        assertTrue(lockMan.holds(t1, r0, LockManager.LockType.IS));
-        assertTrue(lockMan.holds(t2, r0, LockManager.LockType.IX));
-        assertFalse(lockMan.holds(t1, r1, LockManager.LockType.S));
-        assertTrue(lockMan.holds(t2, r1, LockManager.LockType.X));
-    }
-
-    @Test
-    public void testPageUpgrade() {
-        lockMan = new LockManager();
-
-        Transaction t1 = new Transaction("t1", 1);
-
-        Table a = new Table("A");
-        Resource r0 = a;
-        Resource r1 = new Page("1", a);
-
-        lockMan.acquire(t1, r0, LockManager.LockType.IX);
-        lockMan.acquire(t1, r1, LockManager.LockType.S);
-        lockMan.acquire(t1, r1, LockManager.LockType.X);
-
-        assertTrue(lockMan.holds(t1, r0, LockManager.LockType.IX));
-        //System.out.println(lockMan.holds(t1, r1, LockManager.LockType.S));
-        assertFalse(lockMan.holds(t1, r1, LockManager.LockType.S));
-        assertTrue(lockMan.holds(t1, r1, LockManager.LockType.X));
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void blockedRequestsLock() {
-        lockMan = new LockManager();
-
-        Transaction t1 = new Transaction("t1", 1);
-        Transaction t2 = new Transaction("t2", 2);
-
-        Resource r1 = new Table("A");
-        Resource r2 = new Table("B");
-
-        lockMan.acquire(t1, r1, LockManager.LockType.X);
-        lockMan.acquire(t2, r1, LockManager.LockType.S);
-
-        assertEquals(Transaction.Status.Waiting, t2.getStatus());
-
-        lockMan.acquire(t2, r2, LockManager.LockType.S);
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -529,147 +362,102 @@ public class TestLockManager {
          * Throws an exception when a transaction requests a lock that it already
          *  holds.
          */
-        lockMan = new LockManager();
+        lockMan = new LockManager(LockManager.DeadlockAvoidanceType.None);
 
         Transaction t1 = new Transaction("t1", 1);
 
-        Resource r1 = new Table("A");
-
-        lockMan.acquire(t1, r1, LockManager.LockType.X);
-        lockMan.acquire(t1, r1, LockManager.LockType.X);
+        lockMan.acquire(t1, "A", LockManager.LockType.Exclusive);
+        lockMan.acquire(t1, "A", LockManager.LockType.Exclusive);
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void requestDowngrade() {
-        lockMan = new LockManager();
+    public void illegalSharedRequest() {
+        /**
+         * Throws an exception when transaction holding exclusive lock requests
+         *  a shared lock on the same table.
+         */
+        lockMan = new LockManager(LockManager.DeadlockAvoidanceType.None);
 
         Transaction t1 = new Transaction("t1", 1);
 
-        Resource r1 = new Table("A");
-
-        lockMan.acquire(t1, r1, LockManager.LockType.X);
-        lockMan.acquire(t1, r1, LockManager.LockType.S);
+        lockMan.acquire(t1, "A", LockManager.LockType.Exclusive);
+        lockMan.acquire(t1, "A", LockManager.LockType.Shared);
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void requestIntentPageIS() {
-        lockMan = new LockManager();
-
-        Transaction t1 = new Transaction("t1", 1);
-
-        Table a = new Table("A");
-        Resource r0 = a;
-        Resource r1 = new Page("1", a);
-        lockMan.acquire(t1, r0, LockManager.LockType.IS);
-        lockMan.acquire(t1, r1, LockManager.LockType.IS);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testAssertIS1() {
-        lockMan = new LockManager();
-
-        Transaction t1 = new Transaction("t1", 1);
-
-        Table a = new Table("A");
-        Resource r0 = a;
-        Resource r1 = new Page("1", a);
-        lockMan.acquire(t1, r1, LockManager.LockType.S);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testAssertIS2() {
-        lockMan = new LockManager();
-
-        Transaction t1 = new Transaction("t1", 1);
-
-        Table a = new Table("A");
-        Resource r0 = a;
-        Resource r1 = new Page("1", a);
-        lockMan.acquire(t1, r0, LockManager.LockType.S);
-        lockMan.acquire(t1, r1, LockManager.LockType.S);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testAssertIX1() {
-        lockMan = new LockManager();
-
-        Transaction t1 = new Transaction("t1", 1);
-
-        Table a = new Table("A");
-        Resource r0 = a;
-        Resource r1 = new Page("1", a);
-        lockMan.acquire(t1, r1, LockManager.LockType.X);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testAssertIX2() {
-        lockMan = new LockManager();
-
-        Transaction t1 = new Transaction("t1", 1);
-
-        Table a = new Table("A");
-        Resource r0 = a;
-        Resource r1 = new Page("1", a);
-        lockMan.acquire(t1, r0, LockManager.LockType.S);
-        lockMan.acquire(t1, r1, LockManager.LockType.X);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testAssertIX3() {
-        lockMan = new LockManager();
-
-        Transaction t1 = new Transaction("t1", 1);
-
-        Table a = new Table("A");
-        Resource r0 = a;
-        Resource r1 = new Page("1", a);
-        lockMan.acquire(t1, r0, LockManager.LockType.X);
-        lockMan.acquire(t1, r1, LockManager.LockType.X);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void blockedTransactionReleases() {
-        lockMan = new LockManager();
+    public void blockedRequestsLock() {
+        /**
+         * Throws an exception when a blocked transaction calls acquire
+         */
+        lockMan = new LockManager(LockManager.DeadlockAvoidanceType.None);
 
         Transaction t1 = new Transaction("t1", 1);
         Transaction t2 = new Transaction("t2", 2);
 
-        Resource r1 = new Table("A");
-        Resource r2 = new Table("B");
+        lockMan.acquire(t1, "A", LockManager.LockType.Exclusive);
+        lockMan.acquire(t2, "A", LockManager.LockType.Shared);
 
-        lockMan.acquire(t1, r1, LockManager.LockType.X);
-        lockMan.acquire(t2, r2, LockManager.LockType.S);
-        lockMan.acquire(t2, r1, LockManager.LockType.S);
 
         assertEquals(Transaction.Status.Waiting, t2.getStatus());
 
-        lockMan.release(t2, r1);
+        lockMan.acquire(t2, "B", LockManager.LockType.Shared);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void releaseUnheldLock() {
-        lockMan = new LockManager();
+        /**
+         * Throws an exception when a transaction releases a lock it doesn't hold
+         */
+        lockMan = new LockManager(LockManager.DeadlockAvoidanceType.None);
 
         Transaction t1 = new Transaction("t1", 1);
 
-        Resource r1 = new Table("A");
-
-        lockMan.release(t1, r1);
+        lockMan.release(t1, "A");
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void testIllegalTableRelease() {
-        lockMan = new LockManager();
+    public void blockedTransactionReleases() {
+        /**
+         * Throws an exception when a blocked transaction calls release
+         */
+        lockMan = new LockManager(LockManager.DeadlockAvoidanceType.None);
 
         Transaction t1 = new Transaction("t1", 1);
+        Transaction t2 = new Transaction("t2", 2);
 
-        Table a = new Table("A");
-        Resource r0 = a;
-        Resource r1 = new Page("1", a);
-        lockMan.acquire(t1, r0, LockManager.LockType.IS);
-        lockMan.acquire(t1, r1, LockManager.LockType.S);
+        lockMan.acquire(t1, "A", LockManager.LockType.Exclusive);
+        lockMan.acquire(t2, "B", LockManager.LockType.Shared);
+        lockMan.acquire(t2, "A", LockManager.LockType.Shared);
 
-        lockMan.release(t1, r0);
+        assertEquals(Transaction.Status.Waiting, t2.getStatus());
 
+        lockMan.release(t2, "A");
     }
+
+    @Test
+    public void skipQueue() {
+        /**
+         * Throws an exception when a blocked transaction calls release
+         */
+        lockMan = new LockManager(LockManager.DeadlockAvoidanceType.None);
+
+        Transaction t1 = new Transaction("t1", 1);
+        Transaction t2 = new Transaction("t2", 2);
+        Transaction t3 = new Transaction("t3", 2);
+
+        lockMan.acquire(t1, "A", LockManager.LockType.Shared);
+        lockMan.acquire(t2, "A", LockManager.LockType.Shared);
+        lockMan.acquire(t3, "A", LockManager.LockType.Exclusive);
+        lockMan.acquire(t2, "A", LockManager.LockType.Exclusive);
+
+        assertEquals(Transaction.Status.Waiting, t3.getStatus());
+        assertTrue(lockMan.holds(t1, "A", LockManager.LockType.Shared));
+        assertTrue(lockMan.holds(t2, "A", LockManager.LockType.Shared));
+        assertFalse(lockMan.holds(t2, "A", LockManager.LockType.Exclusive));
+
+        lockMan.release(t1, "A");
+
+        assertTrue(lockMan.holds(t2, "A", LockManager.LockType.Exclusive));
+    }
+
 }

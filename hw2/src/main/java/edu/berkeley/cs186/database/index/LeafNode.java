@@ -12,7 +12,7 @@ import edu.berkeley.cs186.database.databox.DataBox;
 import edu.berkeley.cs186.database.databox.Type;
 import edu.berkeley.cs186.database.io.Page;
 import edu.berkeley.cs186.database.table.RecordId;
-import oracle.jrockit.jfr.Recording;
+//import oracle.jrockit.jfr.Recording;
 
 import javax.swing.text.html.Option;
 import javax.xml.crypto.Data;
@@ -165,10 +165,7 @@ class LeafNode extends BPlusNode {
 
     keys.add(idx, key);
     rids.add(idx, rid);
-    //System.arraycopy(node.keys, idx, node.keys, idx+1, node.keys.size()-2-idx+1);
-    //System.arraycopy(node.rids, idx, node.rids, idx+1, node.rids.size()-2-idx+1);
-    //node.keys.set(idx, key);
-    //node.rids.set(idx, rid);
+
     if(keys.size() > 2*metadata.getOrder()){
       ArrayList<DataBox> rightKeys = new ArrayList<>(getKeys().subList(metadata.getOrder(), getKeys().size()));
       //System.arraycopy(node.keys, node.metadata.getOrder(), rightKeys, 0, node.metadata.getOrder()+1);

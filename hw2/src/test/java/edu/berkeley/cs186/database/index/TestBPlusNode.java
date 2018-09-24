@@ -34,6 +34,8 @@ public class TestBPlusNode {
     private BPlusTreeMetadata getBPlusTreeMetadata(Type keySchema, int order)
         throws IOException {
       File file = tempFolder.newFile(testFile);
+      //file = new File("tree");
+      System.out.println(file.getAbsolutePath());
       PageAllocator allocator = new PageAllocator(file.getAbsolutePath(), false);
       return new BPlusTreeMetadata(allocator, keySchema, order);
     }

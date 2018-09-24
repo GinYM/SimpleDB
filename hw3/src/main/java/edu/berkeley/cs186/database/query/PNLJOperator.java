@@ -70,6 +70,7 @@ public class PNLJOperator extends JoinOperator {
     public PNLJIterator() throws QueryPlanException, DatabaseException {
       super();
       //throw new UnsupportedOperationException("hw3: TODO");
+      //iterate page
       this.leftIterator = PNLJOperator.this.getPageIterator(this.getLeftTableName());
       this.rightIterator = PNLJOperator.this.getPageIterator(this.getRightTableName());
       //this.leftIterator.next();

@@ -1,6 +1,6 @@
 package edu.berkeley.cs186.database.query;
 
-import com.sun.org.apache.regexp.internal.RECompiler;
+//import com.sun.org.apache.regexp.internal.RECompiler;
 import edu.berkeley.cs186.database.Database;
 import edu.berkeley.cs186.database.DatabaseException;
 import edu.berkeley.cs186.database.databox.DataBox;
