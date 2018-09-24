@@ -49,10 +49,12 @@ public class LockManager {
             throw new IllegalArgumentException();
         }
 
-        if(!compatible(tableName, transaction, lockType)){
+        if(!compatible(tableName, transaction, lockType) &&
+                deadlockAvoidanceType != DeadlockAvoidanceType.None){
             //System.out.println(transaction);
             if(deadlockAvoidanceType == DeadlockAvoidanceType.WoundWait){
                 woundWait(tableName, transaction, lockType);
+
             }else if(deadlockAvoidanceType == DeadlockAvoidanceType.WaitDie){
                 waitDie(tableName, transaction, lockType);
             }
@@ -305,7 +307,6 @@ public class LockManager {
             this.lockOwners = new HashSet<Transaction>();
             this.requestersQueue = new LinkedList<Request>();
         }
-
     }
 
     /**
